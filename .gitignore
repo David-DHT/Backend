@@ -1,0 +1,5 @@
+# Ignorar node_modules (se reinstala con npm)
+node_modules/
+
+# Ignorar .env (Contiene mis variables de entorno)
+.env
