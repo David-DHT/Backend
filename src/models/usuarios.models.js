@@ -19,6 +19,20 @@ export const buscarUsuarioById = async (id) => {
     );
     return rows[0] || null;
 };
+
+// Función para buscar si un correo ya existe
+export const buscarUsuarioByEmail = async (correo) => {
+    const [rows] = await db.query('SELECT * FROM usuarios WHERE correo = ?',[correo]
+    );
+    return rows[0] || null;
+};
+export const buscarUsuarioByTelefono = async (telefono) => {
+    const [rows] = await db.query('SELECT * FROM usuarios WHERE telefono = ?',[telefono]
+    );
+    return rows[0] || null;
+};
+
+
 // Función para crear un nuevo usuario
 export const crearUsuario = async (nombre, aPaterno,aMaterno,correo,telefono,password, idPerfil) => {
 
@@ -36,15 +50,6 @@ export const crearUsuario = async (nombre, aPaterno,aMaterno,correo,telefono,pas
         password,
         idPerfil
     };
-};
-// Función para buscar si un correo ya existe
-export const buscarUsuarioByEmail = async (correo) => {
-    const [rows] = await db.query(
-        'SELECT * FROM usuarios WHERE correo = ?',
-        [correo]
-    );
-    // Si encuentra algo, devuelve el objeto; si no, devuelve null
-    return rows[0] || null;
 };
 
 // Función para actualizar un usuario

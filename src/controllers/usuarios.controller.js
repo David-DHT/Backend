@@ -31,33 +31,6 @@ export const buscarUsuarioById = async (req, res) => {
     }
 };
 
-// Crear usuario
-export const crearUsuario = async (req, res) => {
-    try {
-        const { nombre, aPaterno, aMaterno, correo, telefono, password, idPerfil } = req.body;
-
-        // 1. Validación de campos obligatorios
-        if (!nombre || !aPaterno || !correo || !password || !idPerfil) {
-            return res.status(400).json({ message: 'Faltan datos obligatorios para crear el usuario' });
-        }
-
-        // 2. Validación de correo duplicado
-        const existe = await usuarioModelo.buscarUsuarioByEmail(correo);
-        if (existe) {
-            return res.status(400).json({ message: 'Este correo ya pertenece a un usuario registrado' });
-        }
-        // 3. Crear el usuario
-        const nuevo = await usuarioModelo.crearUsuario(nombre, aPaterno, aMaterno, correo, telefono, password, idPerfil);
-
-        delete nuevo.password;
-        res.status(201).json(nuevo);
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error al crear usuario' });
-    }
-};
-
 // Editar usuario
 export const editarUsuario = async (req, res) => {
     try {
@@ -96,3 +69,4 @@ export const eliminarUsuario = async (req, res) => {
         res.status(500).json({ message: 'Error al eliminar usuario' });
     }
 };
+
