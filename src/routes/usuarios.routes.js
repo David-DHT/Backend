@@ -1,14 +1,13 @@
-// Importa la función Router() de Express.
 import { Router } from 'express';
+import { verificarToken } from '../middlewares/auth.middleware.js';
 import * as usuarioCtrl from '../controllers/usuarios.controller.js';
 
-// Crea una instancia de router.
 const router = Router();
-
-// Define las rutas (endpoints) para Usuarios
+// Rutas públicas
 router.get('/', usuarioCtrl.totalUsuarios);
 router.get('/:id', usuarioCtrl.buscarUsuarioById);
-router.put('/:id', usuarioCtrl.editarUsuario);
-router.delete('/:id', usuarioCtrl.eliminarUsuario);
 
+// Rutas protegidas
+router.put('/:id',verificarToken, usuarioCtrl.editarUsuario);
+router.delete('/:id',verificarToken,usuarioCtrl.eliminarUsuario);
 export default router;
