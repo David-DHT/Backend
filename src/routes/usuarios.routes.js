@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { verificarToken } from '../middlewares/auth.middleware.js';
+import { verificarToken,verificarAdmin } from '../middlewares/auth.middleware.js';
 import * as usuarioCtrl from '../controllers/usuarios.controller.js';
 
 const router = Router();
@@ -9,5 +9,5 @@ router.get('/:id', usuarioCtrl.buscarUsuarioById);
 
 // Rutas protegidas
 router.put('/:id',verificarToken, usuarioCtrl.editarUsuario);
-router.delete('/:id',verificarToken,usuarioCtrl.eliminarUsuario);
-export default router;
+router.delete('/:id',verificarToken,verificarAdmin, usuarioCtrl.eliminarUsuario);
+export default router
