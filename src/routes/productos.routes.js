@@ -9,6 +9,6 @@ const router = Router();
 router.get('/', obtenerProductos);
 
 // Rutas protegidas
-router.post('/', verificarToken, upload.single('imagen'), crearProducto);
-router.put('/:id', verificarToken, upload.single('imagen'), actualizarProducto);
+router.post('/', upload.single('imagen'), crearProducto);
+router.put('/:id', upload.single('imagen'), actualizarProducto);
 export default router;
