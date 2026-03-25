@@ -114,3 +114,55 @@ export const obtenerProductos = async (req, res) => {
     });
   }
 };
+
+export const obtenerProductoPorId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const producto = await productosModel.obtenerProductoPorId(id);
+
+    res.status(200).json({
+      success: true,
+      data: producto
+    });
+  } catch (error) {
+    console.error('Error al obtener producto por ID:', error);
+
+    if (error.message === 'Producto no encontrado') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener el producto'
+    });
+  }
+};
+
+export const eliminarProducto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const resultado = await productosModel.eliminarProducto(id);
+
+    res.status(200).json({
+      success: true,
+      message: resultado.message
+    });
+  } catch (error) {
+    console.error('Error al eliminar producto:', error);
+
+    if (error.message === 'Producto no encontrado') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar el producto'
+    });
+  }
+};
