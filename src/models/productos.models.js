@@ -50,11 +50,7 @@ export const actualizarProducto = async (id_producto, nombre, estado, categoria,
 export const obtenerProductos = async () => {
   try {
     const [rows] = await db.query(
-      `SELECT productos.*, categorias.nombre AS nombre_categoria 
-       FROM productos 
-       INNER JOIN categorias ON productos.categoria = categorias.idCategoria 
-       WHERE productos.estado = 'activo'
-       ORDER BY id_producto DESC`
+      `SELECT * FROM vista_productos_activos ORDER BY id_producto DESC`
     );
 
     return rows;
