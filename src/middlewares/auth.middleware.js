@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
 
-
 export const verificarToken = (req, res, next) => {
 
     const authHeader = req.headers['authorization'];
@@ -20,13 +19,11 @@ export const verificarToken = (req, res, next) => {
 };
 
 export const verificarAdmin = (req, res, next) =>{
-
     //Verificamos si el usuario existe en el req.usuario, que se establece en verificarToken
     if(!req.usuario) return res.status(401).json({ message: 'Usuario no autenticado' });
     
     //comprobar si el idPerfil No es 3 (administrador)
     if(req.usuario.idPerfil !== 3) return res.status(403).json({ message: 'Acceso denegado: se requieren privilegios de administrador' });
-
     next();
 
 };

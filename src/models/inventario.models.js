@@ -1,17 +1,11 @@
-// importa el pool de conexiones
 import db from '../config/db.js';
 
-// Función para obtener el stock actual con nombres de productos y categorías
 export const totalInventario = async () => {
-    const [rows] = await db.query(
-        `SELECT i.id_inventario, p.nombre AS nombre_producto, a.nombre AS nombre_categoria, i.stock_actual
-         FROM inventario i
-         INNER JOIN productos p ON i.producto = p.id_producto
-         INNER JOIN categorias a ON p.categoria = a.idCategoria
-         ORDER BY i.stock_actual ASC`
-    );
+    //Vista 3
+    const [rows] = await db.query(`SELECT * FROM vista_inventario_completo ORDER BY stock_actual ASC`);
     return rows;
 };
+
 export const registrarCompra = async (proveedor, fecha, detalles) => {
     const connection = await db.getConnection();
     try {

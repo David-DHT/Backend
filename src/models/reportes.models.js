@@ -23,17 +23,11 @@ export const insertarOpinion = async (nombreUsuario,Sugerencia) =>{
         'INSERT INTO opiniones (nombreUsuario,sugerencia) VALUES (?,?)',
         [nombreUsuario,Sugerencia]
     );
-    return {
-      id: result.insertId,
-      nombreUsuario,
-      Sugerencia
-    };
+    return {id: result.insertId,nombreUsuario,Sugerencia};
 };
 
 export const consultarOpiniones = async () =>{
 
-    const [rows] = await db.query(
-        'SELECT * FROM opiniones ORDER BY idOpinion DESC'
-    );
+    const [rows] = await db.query('SELECT * FROM opiniones ORDER BY idOpinion DESC');
     return rows;
 };
