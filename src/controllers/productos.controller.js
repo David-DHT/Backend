@@ -48,50 +48,39 @@ export const crearProducto = async (req, res) => {
 // --- ACTUALIZAR PRODUCTO ---
 export const actualizarProducto = async (req, res) => {
   try {
-    const id_producto = req.params.id;
-    const { nombre, estado, categoria, precio, descripcion } = req.body;
+    const { id } = req.params;
+    const { nombre, estado, categoria, precio, descripcion, imagenActual } = req.body;
 
-    // 1. Validar que no haya campos vacíos
-    if (!nombre?.trim() || !categoria || !descripcion?.trim() || precio === undefined || precio === '') {
-      return res.status(400).json({
-        success: false,
-        message: 'Faltan datos. Los campos nombre, categoría, descripción y precio son obligatorios.'
-      });
-    }
+    let imagenUrl = imagenActual || null;
 
-    // 2. Validar que el precio no sea negativo
-    if (Number(precio) < 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'El precio no puede ser un valor negativo.'
-      });
-    }
-
-    // 3. Lógica de la imagen
-    let imagenUrl = req.body.imagen || null; 
     if (req.file) {
       imagenUrl = await uploadToCloudinary(req.file);
     }
 
-    // 4. Actualizar en BD
-    await productosModel.actualizarProducto(
-      id_producto, nombre, estado, categoria, precio, descripcion, imagenUrl
+    const resultado = await productosModel.actualizarProducto(
+      id,
+      nombre,
+      estado,
+      categoria,
+      precio,
+      descripcion,
+      imagenUrl
     );
 
     res.status(200).json({
       success: true,
-      message: 'Producto actualizado exitosamente'
+      message: 'Producto actualizado correctamente',
+      data: resultado
     });
-
   } catch (error) {
     console.error('Error al actualizar producto:', error);
-    if (error.message === 'Producto no encontrado') {
-      return res.status(404).json({ success: false, message: error.message });
-    }
-    res.status(500).json({ success: false, message: 'Error interno del servidor', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar el producto'
+    });
   }
-  
 };
+
 //OBTENER PRODUCTOS
 export const obtenerProductos = async (req, res) => {
   try {
@@ -118,24 +107,29 @@ export const obtenerProductos = async (req, res) => {
 export const obtenerProductoPorId = async (req, res) => {
   try {
     const { id } = req.params;
-    const producto = await productosModel.obtenerProductoPorId(id);
 
-    res.status(200).json({
-      success: true,
-      data: producto
-    });
-  } catch (error) {
-    console.error('Error al obtener producto por ID:', error);
+    const [rows] = await pool.query(
+      `SELECT productos.*, categorias.nombre AS nombre_categoria
+       FROM productos
+       INNER JOIN categorias 
+         ON productos.categoria = categorias.idCategoria
+       WHERE productos.id_producto = ?`,
+      [id]
+    );
 
-    if (error.message === 'Producto no encontrado') {
+    if (rows.length === 0) {
       return res.status(404).json({
-        success: false,
-        message: error.message
+        message: 'Producto no encontrado'
       });
     }
 
+    res.status(200).json({
+      success: true,
+      data: rows[0]
+    });
+  } catch (error) {
+    console.error('Error al obtener producto por ID:', error);
     res.status(500).json({
-      success: false,
       message: 'Error al obtener el producto'
     });
   }
@@ -144,24 +138,25 @@ export const obtenerProductoPorId = async (req, res) => {
 export const eliminarProducto = async (req, res) => {
   try {
     const { id } = req.params;
-    const resultado = await productosModel.eliminarProducto(id);
 
-    res.status(200).json({
-      success: true,
-      message: resultado.message
-    });
-  } catch (error) {
-    console.error('Error al eliminar producto:', error);
+    const [resultado] = await pool.query(
+      'DELETE FROM productos WHERE id_producto = ?',
+      [id]
+    );
 
-    if (error.message === 'Producto no encontrado') {
+    if (resultado.affectedRows === 0) {
       return res.status(404).json({
-        success: false,
-        message: error.message
+        message: 'Producto no encontrado'
       });
     }
 
+    res.status(200).json({
+      success: true,
+      message: 'Producto eliminado correctamente'
+    });
+  } catch (error) {
+    console.error('Error al eliminar producto:', error);
     res.status(500).json({
-      success: false,
       message: 'Error al eliminar el producto'
     });
   }
