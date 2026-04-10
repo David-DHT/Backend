@@ -1,7 +1,7 @@
 import productosModel from '../models/productos.models.js';
 import { uploadToCloudinary } from '../middlewares/upload.js';
 
-// --- CREAR PRODUCTO ---
+
 export const crearProducto = async (req, res) => {
   try {
     const { nombre, estado, categoria, precio, descripcion } = req.body;
@@ -28,7 +28,6 @@ export const crearProducto = async (req, res) => {
       imagenUrl = await uploadToCloudinary(req.file);
     }
 
-    // 4. Guardar en BD
     const nuevoProducto = await productosModel.crearProducto(
       nombre, estado, categoria, precio, descripcion, imagenUrl
     );
