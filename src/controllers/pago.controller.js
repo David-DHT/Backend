@@ -9,17 +9,17 @@ export const crearPreferencia = async (req, res) => {
     try {
         const carrito = req.body; // El carrito que enviaremos desde el frontend
 
-        const body = {
+      const body = {
     items: carrito.map(item => ({
         title: item.nombre || "Producto", 
-        unit_price: Number(item.precio) || 0,
+        unit_price: Number(item.precio) || 0, 
         quantity: parseInt(item.cantidad) || 1, 
         currency_id: "MXN",
     })),
-    back_urls: { 
-        success: "http://localhost:5500/pages/success.html", 
-        failure: "http://localhost:5500/pages/carrito.html", 
-        pending: "http://localhost:5500/pages/pending.html",
+    back_urls: {
+        success: "https://www.google.com", 
+        failure: "https://www.google.com", 
+        pending: "https://www.google.com"
     },
     auto_return: "approved",
 };
