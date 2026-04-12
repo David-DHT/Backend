@@ -87,7 +87,7 @@ export const login = async (req, res) => {
         const token = jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn: '1h' 
         });
-        res.status(200).json({ message: 'Inicio de sesión exitoso', token, idPerfil: usuario.idPerfil });
+        res.status(200).json({ message: 'Inicio de sesión exitoso', token, idPerfil: usuario.idPerfil,idUsuario: usuario.id });
 
     }
     catch (error) {
