@@ -54,7 +54,7 @@ export const editarUsuario = async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al actualizar usuario' });
+        res.status(500).json({ message: 'Error interno', detalle: error.message });
     }
 };
 
