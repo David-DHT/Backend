@@ -1,5 +1,6 @@
 // Import del modelo
 import * as usuarioModelo from '../models/usuarios.models.js';
+import bcrypt from 'bcryptjs';
 
 // Obtener todos los usuarios (incluye el nombre del perfil, sin password)
 export const totalUsuarios = async (req, res) => {
@@ -36,6 +37,12 @@ export const editarUsuario = async (req, res) => {
     try {
         const id = req.params.id;
         const { nombre, aPaterno, aMaterno, correo, telefono, password, idPerfil } = req.body;
+
+        // SI EL USUARIO MANDÓ UNA CONTRASEÑA NUEVA, LA ENCRIPTAMOS
+        if (password) {
+            const salt = await bcrypt.genSalt(10);
+            password = await bcrypt.hash(password, salt);
+        }
 
         const resultado = await usuarioModelo.editarUsuario(id, nombre, aPaterno, aMaterno, correo, telefono, password, idPerfil);
 
