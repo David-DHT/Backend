@@ -12,7 +12,7 @@ export const crearPreferencia = async (req, res) => {
         const body = {
     items: carrito.map(item => ({
         title: item.nombre || "Producto", 
-        unit_price: Number(item.precio), 
+        unit_price: Number(item.precio) || 0,
         quantity: parseInt(item.cantidad) || 1, 
         currency_id: "MXN",
     })),
