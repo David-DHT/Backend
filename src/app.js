@@ -18,7 +18,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 // Middlewares globales (se aplican a TODAS las peticiones)
-app.use(cors()); // Permite peticiones desde frontend (evita errores CORS)
+app.use(cors({
+  origin: '*', // Esto permite que cualquier origen (como tu localhost) se conecte
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json()); // Parsea automáticamente el body JSON que envía el cliente
 // Rutas
 app.use('/api/categorias', categoriaRoutes); 
