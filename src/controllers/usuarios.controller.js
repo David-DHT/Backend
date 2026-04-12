@@ -39,9 +39,12 @@ export const editarUsuario = async (req, res) => {
         let { nombre, aPaterno, aMaterno, correo, telefono, password, idPerfil } = req.body;
 
         // SI EL USUARIO MANDÓ UNA CONTRASEÑA NUEVA, LA ENCRIPTAMOS
-        if (password) {
+        if (password && password.trim() !== "") {
             const salt = await bcrypt.genSalt(10);
             password = await bcrypt.hash(password, salt);
+        }
+        else{
+            password=null;
         }
 
         const resultado = await usuarioModelo.editarUsuario(id, nombre, aPaterno, aMaterno, correo, telefono, password, idPerfil);

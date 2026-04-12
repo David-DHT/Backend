@@ -30,12 +30,20 @@ export const crearUsuario = async (nombre, aPaterno,aMaterno,correo,telefono,pas
     return {id: result.insertId,nombre,aPaterno,aMaterno,correo,telefono,password,idPerfil};
 };
 
+
 export const editarUsuario = async (id, nombre, aPaterno,aMaterno,correo,telefono,password,idPerfil) => {
 
-    const [result] = await db.query(
-        'UPDATE usuarios SET nombre = ?, aPaterno = ?, aMaterno = ?, correo = ?,  telefono = ?, password = ?, idPerfil = ? WHERE idUsuario = ?',
-        [nombre, aPaterno,aMaterno,correo,telefono,password,idPerfil, id]
-    );
+    let campos = "nombre = ?, aPaterno = ?, aMaterno = ?, correo = ?,  telefono = ?, idPerfil = ?";
+    let valores = [nombre, aPaterno, aMaterno, correo, telefono, idPerfil];
+
+    if (password !==null)
+    {
+        campos+= ", password = ?";
+        valores.push(password);
+    }
+    valores.push(id);
+
+    const [result] = await db.query(`UPDATE usuarios SET ${campos} WHERE idUsuario = ?`,valores)
     return result.affectedRows;
 };
 
