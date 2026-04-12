@@ -11,6 +11,7 @@ import reportesRoutes from './routes/reportes.routes.js';
 import productosRoutes from './routes/productos.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import ventasRoutes from './routes/ventas.routes.js';
+import pagoRoutes from './routes/pago.routes.js';
 
 // variables de entorno
 dotenv.config();
@@ -27,7 +28,8 @@ app.use('/api/inventario', inventarioRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/productos', productosRoutes);
 app.use('/api/ventas', ventasRoutes);
-app.use('/api/auth', authRoutes); // Rutas de autenticación (registro/login)
+app.use('/api/auth', authRoutes); 
+app.use('/api/pago',pagoRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);

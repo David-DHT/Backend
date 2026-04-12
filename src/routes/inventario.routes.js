@@ -4,9 +4,8 @@ import * as inventarioCtrl from '../controllers/inventario.controller.js';
 
 const router = Router();
 
-// Rutas públicas
-router.get('/',verificarToken, inventarioCtrl.totalInventario);
 // Rutas protegidas
+router.get('/',verificarToken, inventarioCtrl.totalInventario);
 router.post('/compras',verificarToken,inventarioCtrl.registrarCompra);
 
 export default router;
