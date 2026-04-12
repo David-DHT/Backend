@@ -7,7 +7,10 @@ export const verificarToken = (req, res, next) => {
         return res.status(401).json({ message: 'Token de autenticación no proporcionado' });
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(' ')[1] || null;
+    if (!token) {
+    return res.status(401).json({ message: 'Formato de token inválido o ausente' });
+}
     try {
     const verificado = jwt.verify(token, process.env.JWT_SECRET);
     req.usuario = { id: verificado.id, idPerfil: verificado.idPerfil };

@@ -1,13 +1,8 @@
 import db from '../config/db.js';
 
 export const totalUsuarios = async () => {
-    const [rows] = await db.query(
-        //Vista 2
-        `SELECT u.idUsuario, u.nombre, u.aPaterno, u.aMaterno, u.correo, u.telefono, u.idPerfil, p.perfil 
-         FROM usuarios u 
-         INNER JOIN perfiles p ON u.idPerfil = p.id 
-         ORDER BY u.idUsuario DESC`
-    );
+    //Vista 2
+    const [rows] = await db.query(`SELECT * FROM vista_usuarios ORDER BY idUsuario DESC`);
     return rows;
 };
 
