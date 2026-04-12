@@ -16,14 +16,13 @@ export const crearPreferencia = async (req, res) => {
         quantity: parseInt(item.cantidad) || 1, 
         currency_id: "MXN",
     })),
-    back_urls: { // <-- Súper importante que sea plural: back_urlS
+    back_urls: { 
         success: "http://localhost:5500/pages/success.html", 
         failure: "http://localhost:5500/pages/carrito.html", 
         pending: "http://localhost:5500/pages/pending.html",
     },
     auto_return: "approved",
 };
-
         const preference = new Preference(client);
         const result = await preference.create({ body });
 
