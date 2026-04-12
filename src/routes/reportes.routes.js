@@ -4,11 +4,10 @@ import * as reportesCtrl from '../controllers/reportes.controller.js';
 
 const router = Router();
 
-//Rutas públicas
-router.get('/',reportesCtrl.totalCompras);
-router.get('/:id',reportesCtrl.detalleCompraById)
-router.get('/opiniones',reportesCtrl.consultarOpiniones);
 
 //Rutas protegidas
+router.get('/',verificarToken,reportesCtrl.totalCompras);
+router.get('/:id',verificarToken,reportesCtrl.detalleCompraById)
+router.get('/opiniones',verificarToken,reportesCtrl.consultarOpiniones);
 router.post('/opiniones',verificarToken,reportesCtrl.insertarOpinion);
 export default router;
