@@ -36,7 +36,7 @@ export const buscarUsuarioById = async (req, res) => {
 export const editarUsuario = async (req, res) => {
     try {
         const id = req.params.id;
-        const { nombre, aPaterno, aMaterno, correo, telefono, password, idPerfil } = req.body;
+        let { nombre, aPaterno, aMaterno, correo, telefono, password, idPerfil } = req.body;
 
         // SI EL USUARIO MANDÓ UNA CONTRASEÑA NUEVA, LA ENCRIPTAMOS
         if (password) {
@@ -54,7 +54,7 @@ export const editarUsuario = async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error interno', detalle: error.message });
+        res.status(500).json({ message: 'Error al actualizar usuario' });
     }
 };
 
