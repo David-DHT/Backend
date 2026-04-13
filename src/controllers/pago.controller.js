@@ -18,14 +18,14 @@ export const crearPreferencia = async (req, res) => {
     })),
     back_urls: {
         success: "https://vivero-ecommerce-david-nava03s-projects.vercel.app/index.html", 
-        failure: "https://vivero-ecommerce-david-nava03s-projects.vercel.app/pages/carrito.html", 
+        failure: "https://frontend-alpha-three-ookdkrlwec.vercel.app/pages/carrito.html", 
         pending: "https://vivero-ecommerce-david-nava03s-projects.vercel.app/index.html"
     },
     auto_return: "approved",
 };
         const preference = new Preference(client);
         const result = await preference.create({ body });
-
+5
         // Devolvemos el link de pago al frontend
         res.json({ id: result.id, init_point: result.init_point });
     } catch (error) {
