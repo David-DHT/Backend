@@ -21,9 +21,9 @@ export const actualizarProducto = async (id_producto, nombre, estado, categoria,
 };
 
 export const obtenerProductos = async () => {
-    //Vista 1
     const [rows] = await db.query(
-      `SELECT * FROM vista_productos_completos WHERE estado = 'activo' ORDER BY id_producto DESC`);
+      `SELECT * FROM vista_productos_completos ORDER BY id_producto DESC`
+    );
     return rows;
 };
 
