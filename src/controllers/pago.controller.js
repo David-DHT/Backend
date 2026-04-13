@@ -17,9 +17,9 @@ export const crearPreferencia = async (req, res) => {
         currency_id: "MXN",
     })),
     back_urls: {
-        success: "https://vivero-ecommerce-david-nava03s-projects.vercel.app/index.html", 
-        failure: "https://vivero-ecommerce-david-nava03s-projects.vercel.app/pages/carrito.html", 
-        pending: "https://vivero-ecommerce-david-nava03s-projects.vercel.app/index.html"
+       success: "http://127.0.0.1:5500/index.html", 
+        failure: "http://127.0.0.1:5500/pages/carrito.html", 
+        pending: "http://127.0.0.1:5500/index.html"
     },
     auto_return: "approved",
 };
