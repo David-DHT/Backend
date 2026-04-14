@@ -24,7 +24,7 @@ export const crearPreferencia = async (req, res) => {
     },
     auto_return: "approved",
 
-    notification_url: "https://backend-liard-alpha-37.vercel.app/api/pagos/webhook",
+    notification_url: "https://backend-liard-alpha-37.vercel.app/api/pago/webhook",
     
     metadata: {
         detalles_carrito: JSON.stringify(carrito),
