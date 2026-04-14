@@ -68,7 +68,7 @@ export const crearVenta = async ({ id_trabajador, id_metodo_pago, detalles }) =>
         await connection.beginTransaction();
 
         for (const item of detalles) {
-            
+
             const [stockRows] = await connection.query(`
                 SELECT stock_actual
                 FROM inventario
@@ -94,6 +94,7 @@ export const crearVenta = async ({ id_trabajador, id_metodo_pago, detalles }) =>
         `, [id_trabajador, fechaSistema, id_metodo_pago]);
 
         const idVenta = ventaResult.insertId;
+        console.log("¡ID DE VENTA GENERADO EN LA BD!", idVenta); // <--- AGREGA ESTO
 
         for (const item of detalles) {
             await connection.query(`
