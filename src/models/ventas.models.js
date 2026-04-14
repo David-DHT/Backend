@@ -61,7 +61,6 @@ export const obtenerVentaPorId = async (id) => {
     venta.detalles = detalles;
     return venta;
 };
-
 export const crearVenta = async ({ id_trabajador, id_metodo_pago, detalles }) => {
     const connection = await db.getConnection();
 
@@ -69,12 +68,13 @@ export const crearVenta = async ({ id_trabajador, id_metodo_pago, detalles }) =>
         await connection.beginTransaction();
 
         for (const item of detalles) {
+            
             const [stockRows] = await connection.query(`
-        SELECT stock_actual
-        FROM inventario
-        WHERE producto = ?
-        FOR UPDATE
-      `, [item.id_producto]);
+                SELECT stock_actual
+                FROM inventario
+                WHERE producto = ?
+                FOR UPDATE
+            `, [item.id_producto]);
 
             if (stockRows.length === 0) {
                 throw new Error(`El producto con ID ${item.id_producto} no existe en inventario.`);
@@ -87,18 +87,19 @@ export const crearVenta = async ({ id_trabajador, id_metodo_pago, detalles }) =>
 
         const fechaSistema = new Date().toISOString().split('T')[0];
 
+        // CORRECCIÓN MENOR AQUÍ: En tu diagrama la tabla venta usa ID_Usuario
         const [ventaResult] = await connection.query(`
-      INSERT INTO venta (ID_Trabajador, Fecha, Total, ID_MetodoPago, Estatus)
-      VALUES (?, ?, 0, ?, 'activa')
-    `, [id_trabajador, fechaSistema, id_metodo_pago]);
+            INSERT INTO venta (ID_Usuario, Fecha, Total, ID_MetodoPago, Estatus)
+            VALUES (?, ?, 0, ?, 'activa')
+        `, [id_trabajador, fechaSistema, id_metodo_pago]);
 
         const idVenta = ventaResult.insertId;
 
         for (const item of detalles) {
             await connection.query(`
-        INSERT INTO detalle_venta (ID_Venta, ID_Producto, Cantidad, Precio_Unitario)
-        VALUES (?, ?, ?, ?)
-      `, [
+                INSERT INTO detalle_venta (ID_Venta, ID_Producto, Cantidad, Precio_Unitario)
+                VALUES (?, ?, ?, ?)
+            `, [
                 idVenta,
                 item.id_producto,
                 item.cantidad,

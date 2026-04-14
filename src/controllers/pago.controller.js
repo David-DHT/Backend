@@ -51,7 +51,6 @@ export const recibirWebhook = async (req, res) => {
         if (topic === "payment") {
             const paymentId = query.id || query['data.id'];
             
-            // Consultamos los detalles del pago a Mercado Pago
             const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
                 headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` }
             });
@@ -59,23 +58,20 @@ export const recibirWebhook = async (req, res) => {
             if (response.ok) {
                 const data = await response.json();
 
-                // Si el pago fue aprobado, registramos la venta
                 if (data.status === 'approved') {
                     console.log("Pago aprobado, insertando en base de datos...");
 
-                    // 1. Recuperamos los datos ocultos que mandamos en la preferencia
                     const detallesCarrito = JSON.parse(data.metadata.detalles_carrito);
                     const idTrabajador = data.metadata.id_trabajador;
                     const idMetodoPago = data.metadata.id_metodo_pago;
 
-                    // 2. Adaptamos los nombres del carrito a lo que espera tu modelo
+                    // El parche mágico: Buscamos 'id', si no está, buscamos 'id_producto'
                     const detallesParaBD = detallesCarrito.map(item => ({
-                        id_producto: item.id_producto, // Asegúrate de que el frontend envíe este ID
-                        cantidad: item.cantidad,
-                        precio_unitario: item.precio
+                        id_producto: item.id || item.id_producto, 
+                        cantidad: item.cantidad || item.quantity,
+                        precio_unitario: item.precio || item.unit_price
                     }));
 
-                    // 3. ¡LLAMAMOS A TU MAGNÍFICO MODELO!
                     await crearVenta({
                         id_trabajador: idTrabajador,
                         id_metodo_pago: idMetodoPago,
