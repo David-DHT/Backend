@@ -5,7 +5,8 @@ import {
   registrarVenta,
   actualizarVenta,
   cancelarVenta,
-  listarMetodosPago
+  listarMetodosPago,
+  obtenerTopProductosVendidos
 } from '../controllers/ventas.controller.js';
 
 import { verificarToken } from '../middlewares/auth.middleware.js';
