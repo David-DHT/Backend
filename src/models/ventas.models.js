@@ -61,14 +61,25 @@ export const obtenerVentaPorId = async (id) => {
     venta.detalles = detalles;
     return venta;
 };
-export const crearVenta = async ({ id_trabajador, id_metodo_pago, detalles }) => {
+
+export const crearVenta = async ({ id_trabajador, id_metodo_pago, detalles, id_pago_mp }) => {
     const connection = await db.getConnection();
 
     try {
         await connection.beginTransaction();
 
-        for (const item of detalles) {
+        // 1. Validar si el pago ya existe para evitar duplicados
+        const [pagoExistente] = await connection.query(
+            "SELECT ID_Venta FROM venta WHERE ID_Pago_MP = ?",
+            [id_pago_mp]
+        );
 
+        if (pagoExistente.length > 0) {
+            throw new Error(`El pago ${id_pago_mp} ya ha sido procesado.`);
+        }
+
+        // 2. Validar stock en inventario
+        for (const item of detalles) {
             const [stockRows] = await connection.query(`
                 SELECT stock_actual
                 FROM inventario
@@ -87,28 +98,29 @@ export const crearVenta = async ({ id_trabajador, id_metodo_pago, detalles }) =>
 
         const fechaSistema = new Date().toISOString().split('T')[0];
 
-        // CORRECCIÓN MENOR AQUÍ: En tu diagrama la tabla venta usa ID_Usuario
         const [ventaResult] = await connection.query(`
-            INSERT INTO venta (ID_Usuario, Fecha, Total, ID_MetodoPago, Estatus)
-            VALUES (?, ?, 0, ?, 'activa')
-        `, [id_trabajador, fechaSistema, id_metodo_pago]);
+            INSERT INTO venta (ID_Usuario, Fecha, Total, ID_MetodoPago, Estatus, ID_Pago_MP)
+            VALUES (?, ?, 0, ?, 'activa', ?)
+        `, [id_trabajador, fechaSistema, id_metodo_pago, id_pago_mp]);
 
         const idVenta = ventaResult.insertId;
-        console.log("¡ID DE VENTA GENERADO EN LA BD!", idVenta); // <--- AGREGA ESTO
 
+        // 4. Insertar detalles y actualizar stock
         for (const item of detalles) {
             await connection.query(`
                 INSERT INTO detalle_venta (ID_Venta, ID_Producto, Cantidad, Precio_Unitario)
                 VALUES (?, ?, ?, ?)
-            `, [
-                idVenta,
-                item.id_producto,
-                item.cantidad,
-                item.precio_unitario
-            ]);
+            `, [idVenta, item.id_producto, item.cantidad, item.precio_unitario]);
+
+            await connection.query(`
+                UPDATE inventario 
+                SET stock_actual = stock_actual - ? 
+                WHERE producto = ?
+            `, [item.cantidad, item.id_producto]);
         }
 
         await connection.commit();
+        console.log(`Venta ${idVenta} registrada correctamente.`);
         return idVenta;
     } catch (error) {
         await connection.rollback();

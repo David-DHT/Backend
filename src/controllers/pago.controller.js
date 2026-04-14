@@ -42,7 +42,6 @@ export const crearPreferencia = async (req, res) => {
         res.status(500).json({ error: "Error al crear el pago" });
     }
 };
-
 export const recibirWebhook = async (req, res) => {
     try {
         const { query } = req;
@@ -50,7 +49,8 @@ export const recibirWebhook = async (req, res) => {
 
         if (topic === "payment") {
             const paymentId = query.id || query['data.id'];
-            
+
+            // Consultamos los detalles del pago a Mercado Pago
             const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
                 headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` }
             });
@@ -59,32 +59,38 @@ export const recibirWebhook = async (req, res) => {
                 const data = await response.json();
 
                 if (data.status === 'approved') {
-                    console.log("Pago aprobado, insertando en base de datos...");
+                    console.log("Pago aprobado, procesando...");
 
                     const detallesCarrito = JSON.parse(data.metadata.detalles_carrito);
                     const idTrabajador = data.metadata.id_trabajador;
                     const idMetodoPago = data.metadata.id_metodo_pago;
 
-                    // El parche mágico: Buscamos 'id', si no está, buscamos 'id_producto'
                     const detallesParaBD = detallesCarrito.map(item => ({
                         id_producto: item.id || item.id_producto, 
                         cantidad: item.cantidad || item.quantity,
                         precio_unitario: item.precio || item.unit_price
                     }));
 
+                    // Intentamos crear la venta (el modelo se encargará de ver si el ID_Pago_MP ya existe)
                     await crearVenta({
                         id_trabajador: idTrabajador,
                         id_metodo_pago: idMetodoPago,
-                        detalles: detallesParaBD
+                        detalles: detallesParaBD,
+                        id_pago_mp: paymentId // Enviamos el ID de pago
                     });
 
-                    console.log("¡Venta registrada con éxito en la Base de Datos!");
+                    console.log("¡Proceso de Webhook completado con éxito!");
                 }
             }
         }
 
         res.sendStatus(200); 
     } catch (error) {
+        // Si el error es porque el ID ya existe, respondemos 200 para que MP deje de insistir
+        if (error.message.includes("ya ha sido procesado")) {
+            console.log(error.message);
+            return res.sendStatus(200);
+        }
         console.error("Error en el Webhook:", error);
         res.sendStatus(500);
     }
