@@ -1,22 +1,22 @@
 import db from '../config/db.js';
-
+// ventas.models.js
 export const obtenerVentas = async () => {
     const [rows] = await db.query(`
-    SELECT
-      v.ID_Venta AS id_venta,
-      v.Fecha AS fecha,
-      v.Total AS total,
-      v.Estatus AS estatus,
-      v.MotivoCancelacion AS motivo_cancelacion,
-      v.ID_Trabajador AS id_trabajador,
-      CONCAT(u.nombre, ' ', u.aPaterno, ' ', u.aMaterno) AS trabajador,
-      v.ID_MetodoPago AS id_metodo_pago,
-      mp.Nombre AS metodo_pago
-    FROM venta v
-    INNER JOIN usuarios u ON u.idUsuario = v.ID_Trabajador
-    INNER JOIN metodo_pago mp ON mp.ID_Metodo = v.ID_MetodoPago
-    ORDER BY v.ID_Venta DESC
-  `);
+        SELECT 
+            v.ID_Venta AS id_venta,
+            v.Fecha AS fecha,
+            v.Total AS total,
+            v.Estatus AS estatus,
+            v.MotivoCancelacion AS motivo_cancelacion,
+            v.ID_Usuario AS id_trabajador, -- 1. CAMBIADO: Era ID_Trabajador
+            CONCAT(u.nombre, ' ', u.aPaterno, ' ', u.aMaterno) AS trabajador,
+            v.ID_MetodoPago AS id_metodo_pago,
+            mp.Nombre AS metodo_pago
+        FROM venta v
+        INNER JOIN usuarios u ON u.idUsuario = v.ID_Usuario -- 2. CAMBIADO: Era v.ID_Trabajador
+        INNER JOIN metodo_pago mp ON mp.ID_Metodo = v.ID_MetodoPago
+        ORDER BY v.ID_Venta DESC
+    `);
 
     return rows;
 };
