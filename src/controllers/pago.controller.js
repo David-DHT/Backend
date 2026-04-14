@@ -28,7 +28,7 @@ export const crearPreferencia = async (req, res) => {
     
     metadata: {
         detalles_carrito: JSON.stringify(carrito),
-        id_trabajador: 1, // Aquí pones el ID por defecto para ventas web
+        id_trabajador: 26, // Aquí pones el ID por defecto para ventas web
         id_metodo_pago: 2
     }
 };
