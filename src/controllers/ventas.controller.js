@@ -106,3 +106,13 @@ export const listarMetodosPago = async (req, res) => {
         res.status(500).json({ message: 'Error al obtener métodos de pago.' });
     }
 };
+
+export const obtenerTopProductosVendidos = async (req, res) => {
+    try {
+        const topProductos = await ventasModel.obtenerTopProductos();
+        res.status(200).json({ data: topProductos });
+    } catch (error) {
+        console.error('Error al obtener el top de productos:', error);
+        res.status(500).json({ message: 'Error al obtener el top de productos.' });
+    }
+};

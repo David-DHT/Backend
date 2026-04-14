@@ -191,3 +191,21 @@ export const obtenerMetodosPago = async () => {
 
     return rows;
 };
+
+export const obtenerTopProductos = async () => {
+    const [rows] = await db.query(`
+        SELECT 
+            p.id_producto,
+            TRIM(p.nombre) AS nombre, 
+            SUM(dv.Cantidad) AS cantidad
+        FROM detalle_venta dv
+        INNER JOIN venta v ON v.ID_Venta = dv.ID_Venta
+        INNER JOIN productos p ON p.id_producto = dv.ID_Producto 
+        WHERE v.Estatus != 'cancelada'
+        GROUP BY p.id_producto, p.nombre
+        ORDER BY cantidad DESC
+        LIMIT 10
+    `);
+    
+    return rows;
+};

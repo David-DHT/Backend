@@ -14,6 +14,8 @@ const router = express.Router();
 
 router.get('/', verificarToken, listarVentas);
 router.get('/metodos-pago', verificarToken, listarMetodosPago);
+
+router.get('/top-productos', verificarToken, obtenerTopProductosVendidos);
 router.get('/:id', verificarToken, obtenerVenta);
 router.post('/', verificarToken, registrarVenta);
 router.put('/:id', verificarToken, actualizarVenta);
