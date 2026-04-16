@@ -1,4 +1,3 @@
-// Import del modelo
 import * as inventarioModelo from '../models/inventario.models.js';
 
 export const totalInventario = async (req, res) => {
@@ -18,9 +17,10 @@ export const registrarCompra = async (req, res) => {
         if (!id_proveedor || !detalles || detalles.length === 0) {
             return res.status(400).json({ message: 'Faltan datos o no hay productos en la compra.' });
         }
-        const idNuevaCompra = await inventarioModelo.registrarCompra(id_proveedor, fecha,detalles);
 
-        res.status(201).json({ 
+        const idNuevaCompra = await inventarioModelo.registrarCompra(id_proveedor, fecha, detalles);
+
+        res.status(201).json({
             message: 'Compra registrada y stock actualizado exitosamente',
             id_compra: idNuevaCompra
         });
@@ -28,5 +28,32 @@ export const registrarCompra = async (req, res) => {
     } catch (error) {
         console.error('Error al registrar compra:', error);
         res.status(500).json({ message: 'Error interno al registrar la compra' });
+    }
+};
+
+export const registrarSalidaInventario = async (req, res) => {
+    try {
+        const { id_producto, cantidad, motivo } = req.body;
+
+        if (!id_producto || !cantidad || Number(cantidad) <= 0) {
+            return res.status(400).json({ message: 'Debes enviar un producto y una cantidad válida.' });
+        }
+
+        if (!motivo || !motivo.trim()) {
+            return res.status(400).json({ message: 'Debes escribir el motivo de la eliminación.' });
+        }
+
+        await inventarioModelo.registrarSalidaInventario(
+            Number(id_producto),
+            Number(cantidad)
+        );
+
+        res.status(200).json({
+            message: 'Inventario actualizado correctamente. El stock fue descontado.'
+        });
+
+    } catch (error) {
+        console.error('Error al registrar salida de inventario:', error);
+        res.status(500).json({ message: error.message || 'Error interno al registrar la salida de inventario.' });
     }
 };
