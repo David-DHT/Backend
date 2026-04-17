@@ -36,7 +36,7 @@ app.use('/api/productos', productosRoutes);
 app.use('/api/ventas', ventasRoutes);
 app.use('/api/auth', authRoutes); 
 app.use('/api/pago',pagoRoutes);
-app.use('/api/configuracion', configRoutes);
+app.use('/api/config', configRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
