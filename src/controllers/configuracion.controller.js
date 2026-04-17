@@ -6,7 +6,7 @@ export const getConfiguracion = async (req, res) =>{
     try{
         const datos = await configuracionModel.obtenerDatos();
 
-        if (datos>0){
+        if (datos){
             res.json(datos);
         }
         else{
