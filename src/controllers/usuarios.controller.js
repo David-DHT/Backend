@@ -36,18 +36,26 @@ export const buscarUsuarioById = async (req, res) => {
 export const editarUsuario = async (req, res) => {
     try {
         const id = req.params.id;
-        let { nombre, aPaterno, aMaterno, correo, telefono, password, idPerfil } = req.body;
+        let { nombre, aPaterno, aMaterno, correo, telefono, password, idPerfil, estado } = req.body;
 
-        // SI EL USUARIO MANDÓ UNA CONTRASEÑA NUEVA, LA ENCRIPTAMOS
         if (password && password.trim() !== "") {
             const salt = await bcrypt.genSalt(10);
             password = await bcrypt.hash(password, salt);
-        }
-        else{
-            password=null;
+        } else {
+            password = null;
         }
 
-        const resultado = await usuarioModelo.editarUsuario(id, nombre, aPaterno, aMaterno, correo, telefono, password, idPerfil);
+        const resultado = await usuarioModelo.editarUsuario(
+            id,
+            nombre,
+            aPaterno,
+            aMaterno,
+            correo,
+            telefono,
+            password,
+            idPerfil,
+            estado
+        );
 
         if (resultado === 0) {
             return res.status(404).json({ message: 'No se encontró el usuario para actualizar' });
