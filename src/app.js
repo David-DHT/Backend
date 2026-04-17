@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import categoriaRoutes from './routes/categorias.routes.js';
 import proveedoresRoutes from './routes/proveedores.routes.js';
 import usuariosRoutes from './routes/usuarios.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 import inventarioRoutes from './routes/inventario.routes.js';
 import reportesRoutes from './routes/reportes.routes.js';
 import productosRoutes from './routes/productos.routes.js';
@@ -30,6 +31,7 @@ app.use(express.json()); // Parsea automáticamente el body JSON que envía el c
 app.use('/api/categorias', categoriaRoutes); 
 app.use('/api/proveedores', proveedoresRoutes);
 app.use('/api/usuarios', usuariosRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/inventario', inventarioRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/productos', productosRoutes);
@@ -37,6 +39,7 @@ app.use('/api/ventas', ventasRoutes);
 app.use('/api/auth', authRoutes); 
 app.use('/api/pago',pagoRoutes);
 app.use('/api/config', configRoutes);
+
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
