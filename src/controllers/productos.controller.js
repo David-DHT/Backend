@@ -55,8 +55,19 @@ export const actualizarProducto = async (req, res) => {
     const { id } = req.params;
     const { nombre, estado, categoria, precio, descripcion, imagenActual } = req.body;
 
-    // Mantener la imagen actual si no se sube una nueva
-    let imagenUrl = imagenActual || null;
+    const productoActual = await productosModel.obtenerProductoPorId(id);
+
+    const nombreFinal = nombre ?? productoActual.nombre;
+    const estadoFinal = estado ?? productoActual.estado;
+    const categoriaFinal = categoria ?? productoActual.categoria;
+    const precioFinal = precio ?? productoActual.precio;
+    const descripcionFinal = descripcion ?? productoActual.descripcion;
+
+    let imagenUrl = productoActual.imagen || null;
+
+    if (imagenActual && String(imagenActual).trim() !== '') {
+      imagenUrl = imagenActual;
+    }
 
     if (req.file) {
       imagenUrl = await uploadToCloudinary(req.file);
@@ -64,11 +75,11 @@ export const actualizarProducto = async (req, res) => {
 
     const resultado = await productosModel.actualizarProducto(
       id,
-      nombre,
-      estado,
-      categoria,
-      precio,
-      descripcion,
+      nombreFinal,
+      estadoFinal,
+      categoriaFinal,
+      precioFinal,
+      descripcionFinal,
       imagenUrl
     );
 
@@ -156,25 +167,6 @@ export const eliminarProducto = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al eliminar el producto'
-    });
-  }
-};
-
-export const obtenerTopVendidos = async (req, res) => {
-  try {
-    const productos = await productosModel.obtenerTopVendidos();
-
-    res.status(200).json({
-      success: true,
-      message: 'Top de productos obtenidos correctamente',
-      data: productos
-    });
-  } catch (error) {
-    console.error('Error al obtener top de productos:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error interno del servidor al obtener el top de productos',
-      error: error.message
     });
   }
 };

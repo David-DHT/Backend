@@ -21,7 +21,6 @@ export const crearProducto = async (
 
     const idProducto = result.insertId;
 
-    // Crear su registro en inventario con stock inicial en 0
     await connection.query(
       `INSERT INTO inventario (producto, categoria, stock_actual)
        VALUES (?, ?, 0)`,
@@ -72,7 +71,6 @@ export const actualizarProducto = async (
       throw new Error('Producto no encontrado');
     }
 
-    // Mantener sincronizada la categoría dentro de inventario
     await connection.query(
       `UPDATE inventario
        SET categoria = ?
@@ -120,44 +118,10 @@ export const eliminarProducto = async (id) => {
   return { message: 'Producto dado de baja (inactivado) correctamente' };
 };
 
-export const obtenerTopVendidos = async () => {
-  const [rows] = await db.query(`
-    SELECT
-      p.id_producto,
-      p.nombre,
-      p.stock,
-      p.estado,
-      p.categoria,
-      p.precio,
-      p.descripcion,
-      p.imagen,
-      c.nombre AS nombre_categoria,
-      SUM(dv.Cantidad) AS total_vendido
-    FROM detalle_venta dv
-    INNER JOIN venta v
-      ON v.ID_Venta = dv.ID_Venta
-    INNER JOIN productos p
-      ON p.id_producto = dv.ID_Producto
-    INNER JOIN categorias c
-      ON c.idCategoria = p.categoria
-    WHERE v.Estatus = 'activa'
-      AND p.estado = 'activo'
-      AND p.stock > 0
-    GROUP BY
-      p.id_producto, p.nombre, p.stock, p.estado,
-      p.categoria, p.precio, p.descripcion, p.imagen, c.nombre
-    ORDER BY total_vendido DESC, p.nombre ASC
-    LIMIT 5
-  `);
-
-  return rows;
-};
-
 export default {
   crearProducto,
   actualizarProducto,
   obtenerProductos,
   obtenerProductoPorId,
-  eliminarProducto,
-  obtenerTopVendidos
+  eliminarProducto
 };
