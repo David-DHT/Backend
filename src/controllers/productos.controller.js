@@ -159,3 +159,22 @@ export const eliminarProducto = async (req, res) => {
     });
   }
 };
+
+export const obtenerTopVendidos = async (req, res) => {
+  try {
+    const productos = await productosModel.obtenerTopVendidos();
+
+    res.status(200).json({
+      success: true,
+      message: 'Top de productos obtenidos correctamente',
+      data: productos
+    });
+  } catch (error) {
+    console.error('Error al obtener top de productos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor al obtener el top de productos',
+      error: error.message
+    });
+  }
+};

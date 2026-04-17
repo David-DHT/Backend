@@ -4,7 +4,8 @@ import {
   actualizarProducto,
   obtenerProductos,
   obtenerProductoPorId,
-  eliminarProducto
+  eliminarProducto,
+  obtenerTopVendidos
 } from '../controllers/productos.controller.js';
 import { upload } from '../middlewares/upload.js';
 import { verificarToken } from '../middlewares/auth.middleware.js';
@@ -12,7 +13,9 @@ import { verificarToken } from '../middlewares/auth.middleware.js';
 const router = Router();
 
 router.get('/', obtenerProductos);
+router.get('/top-vendidos', obtenerTopVendidos);
 router.get('/:id', obtenerProductoPorId);
+
 
 
 router.post('/',verificarToken, upload.single('imagen'), crearProducto);
