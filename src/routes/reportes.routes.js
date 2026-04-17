@@ -10,6 +10,7 @@ router.get('/dashboard', verificarToken, reportesCtrl.obtenerDashboard);
 // Opiniones
 router.get('/opiniones', verificarToken, reportesCtrl.consultarOpiniones);
 router.post('/opiniones', verificarToken, reportesCtrl.insertarOpinion);
+router.delete('/opiniones/:id', verificarToken, reportesCtrl.eliminarOpinion);
 
 // Compras
 router.get('/', verificarToken, reportesCtrl.totalCompras);

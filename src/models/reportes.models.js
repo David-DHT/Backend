@@ -169,3 +169,12 @@ export const consultarOpiniones = async () => {
 
     return rows;
 };
+
+export const eliminarOpinion = async (idOpinion) => {
+    const [result] = await db.query(`
+        DELETE FROM opiniones
+        WHERE idOpinion = ?
+    `, [idOpinion]);
+
+    return result.affectedRows;
+};

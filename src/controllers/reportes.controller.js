@@ -123,3 +123,37 @@ export const consultarOpiniones = async (req, res) => {
         });
     }
 };
+
+export const eliminarOpinion = async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+
+        if (!id || id <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'ID de opinión no válido'
+            });
+        }
+
+        const filasAfectadas = await reportesModelo.eliminarOpinion(id);
+
+        if (!filasAfectadas) {
+            return res.status(404).json({
+                success: false,
+                message: 'La opinión no fue encontrada'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Opinión eliminada correctamente'
+        });
+    } catch (error) {
+        console.error('Error al eliminar opinión:', error);
+
+        return res.status(500).json({
+            success: false,
+            message: 'Error al eliminar la opinión'
+        });
+    }
+};
