@@ -32,8 +32,13 @@ export const crearUsuario = async (nombre, aPaterno,aMaterno,correo,telefono,pas
 
 
 export const editarUsuario = async (id, nombre, aPaterno, aMaterno, correo, telefono, password, idPerfil, estado) => {
-    let campos = "nombre = ?, aPaterno = ?, aMaterno = ?, correo = ?, telefono = ?, idPerfil = ?, estado = ?";
-    let valores = [nombre, aPaterno, aMaterno, correo, telefono, idPerfil, estado];
+    let campos = "nombre = ?, aPaterno = ?, aMaterno = ?, correo = ?, telefono = ?, idPerfil = ?";
+    let valores = [nombre, aPaterno, aMaterno, correo, telefono, idPerfil];
+
+    if (typeof estado !== 'undefined') {
+        campos += ", estado = ?";
+        valores.push(estado);
+    }
 
     if (password !== null) {
         campos += ", password = ?";
