@@ -1,4 +1,4 @@
-import * as configuracionModel from '../models/configuracion.models';
+import * as configuracionModel from '../models/configuracion.models.js';
 
 export const getConfiguracion = async (req, res) =>{
 
@@ -15,4 +15,4 @@ export const getConfiguracion = async (req, res) =>{
         console.error("Error en el controlador:", error);
         res.status(500).json({message: "Error al obtener los datos del servidor"});
     }
-}
+};

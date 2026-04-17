@@ -5,5 +5,5 @@ export const obtenerDatos = async () => {
     `SELECT * FROM configuracion WHERE id_configuracion=1`
   );
   return rows;
-}
+};
 
