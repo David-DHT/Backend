@@ -76,32 +76,26 @@ export const insertarOpinion = async (req, res) => {
         const nombreUsuario = String(req.body?.nombreUsuario || '').trim();
         const sugerencia = String(req.body?.sugerencia || '').trim();
 
-        if (!nombreUsuario) {
+        if (!nombreUsuario || !sugerencia) {
             return res.status(400).json({
                 success: false,
-                message: 'El nombre de usuario es obligatorio'
+                message: 'El nombre de usuario y la sugerencia son obligatorios'
             });
         }
 
-        if (!sugerencia) {
-            return res.status(400).json({
-                success: false,
-                message: 'La sugerencia es obligatoria'
-            });
-        }
-
-        const nuevaOpinion = await reportesModelo.insertarOpinion(nombreUsuario, sugerencia);
+        const opinion = await reportesModelo.insertarOpinion(nombreUsuario, sugerencia);
 
         return res.status(201).json({
             success: true,
-            data: nuevaOpinion
+            message: 'Opinión registrada correctamente',
+            data: opinion
         });
     } catch (error) {
-        console.error('Error al insertar opinión:', error);
+        console.error('Error al registrar opinión:', error);
 
         return res.status(500).json({
             success: false,
-            message: 'Error al insertar la opinión'
+            message: 'Error al registrar la opinión'
         });
     }
 };
@@ -119,28 +113,28 @@ export const consultarOpiniones = async (req, res) => {
 
         return res.status(500).json({
             success: false,
-            message: 'Error al obtener las opiniones'
+            message: 'Error al consultar las opiniones'
         });
     }
 };
 
 export const eliminarOpinion = async (req, res) => {
     try {
-        const id = Number(req.params.id);
+        const idOpinion = Number(req.params.id);
 
-        if (!id || id <= 0) {
+        if (!idOpinion || idOpinion <= 0) {
             return res.status(400).json({
                 success: false,
                 message: 'ID de opinión no válido'
             });
         }
 
-        const filasAfectadas = await reportesModelo.eliminarOpinion(id);
+        const eliminadas = await reportesModelo.eliminarOpinion(idOpinion);
 
-        if (!filasAfectadas) {
+        if (!eliminadas) {
             return res.status(404).json({
                 success: false,
-                message: 'La opinión no fue encontrada'
+                message: 'Opinión no encontrada'
             });
         }
 
@@ -154,6 +148,24 @@ export const eliminarOpinion = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: 'Error al eliminar la opinión'
+        });
+    }
+};
+
+export const obtenerEstimaciones = async (req, res) => {
+    try {
+        const estimacion = await reportesModelo.obtenerEstimacionProductoTop();
+
+        return res.status(200).json({
+            success: true,
+            data: estimacion
+        });
+    } catch (error) {
+        console.error('Error al obtener estimaciones de reportes:', error);
+
+        return res.status(500).json({
+            success: false,
+            message: 'Error al obtener las estimaciones del producto más vendido'
         });
     }
 };

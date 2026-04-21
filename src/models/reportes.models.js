@@ -178,3 +178,199 @@ export const eliminarOpinion = async (idOpinion) => {
 
     return result.affectedRows;
 };
+
+export const obtenerEstimacionProductoTop = async () => {
+    const [rangoRows] = await db.query(`
+        SELECT
+            MIN(Fecha) AS fecha_minima_db,
+            CURDATE() AS fecha_limite_actual,
+            COUNT(*) AS total_ventas_activas
+        FROM venta
+        WHERE Estatus = 'activa'
+    `);
+
+    const rango = rangoRows[0] || {};
+
+    if (!rango.fecha_minima_db || Number(rango.total_ventas_activas || 0) === 0) {
+        return {
+            rango: {
+                fecha_minima_db: null,
+                fecha_limite_actual: null,
+                dias_periodo_global: 0
+            },
+            producto: null,
+            puntos_modelo: null,
+            procedimiento: null,
+            estimaciones: null,
+            observaciones: [
+                'No existen ventas activas suficientes para calcular estimaciones.'
+            ]
+        };
+    }
+
+    const [topRows] = await db.query(`
+        SELECT
+            p.id_producto,
+            TRIM(p.nombre) AS nombre_producto,
+            SUM(dv.Cantidad) AS total_vendido
+        FROM detalle_venta dv
+        INNER JOIN venta v
+            ON v.ID_Venta = dv.ID_Venta
+        INNER JOIN productos p
+            ON p.id_producto = dv.ID_Producto
+        WHERE v.Estatus = 'activa'
+        GROUP BY p.id_producto, p.nombre
+        ORDER BY total_vendido DESC, nombre_producto ASC
+        LIMIT 1
+    `);
+
+    const productoTop = topRows[0];
+
+    if (!productoTop) {
+        return {
+            rango: {
+                fecha_minima_db: rango.fecha_minima_db,
+                fecha_limite_actual: rango.fecha_limite_actual,
+                dias_periodo_global: 0
+            },
+            producto: null,
+            puntos_modelo: null,
+            procedimiento: null,
+            estimaciones: null,
+            observaciones: [
+                'No se encontró un producto con ventas activas para estimar.'
+            ]
+        };
+    }
+
+    const [seriesRows] = await db.query(`
+        SELECT
+            v.Fecha AS fecha,
+            SUM(dv.Cantidad) AS cantidad_dia
+        FROM detalle_venta dv
+        INNER JOIN venta v
+            ON v.ID_Venta = dv.ID_Venta
+        WHERE v.Estatus = 'activa'
+          AND dv.ID_Producto = ?
+        GROUP BY v.Fecha
+        ORDER BY v.Fecha ASC
+    `, [productoTop.id_producto]);
+
+    if (!seriesRows.length) {
+        return {
+            rango: {
+                fecha_minima_db: rango.fecha_minima_db,
+                fecha_limite_actual: rango.fecha_limite_actual,
+                dias_periodo_global: 0
+            },
+            producto: {
+                id_producto: Number(productoTop.id_producto),
+                nombre_producto: productoTop.nombre_producto,
+                total_vendido: Number(productoTop.total_vendido || 0)
+            },
+            puntos_modelo: null,
+            procedimiento: null,
+            estimaciones: null,
+            observaciones: [
+                'No se encontró una serie histórica válida para el producto más vendido.'
+            ]
+        };
+    }
+
+    const primerPunto = seriesRows[0];
+    const ultimoPunto = seriesRows[seriesRows.length - 1];
+
+    const [diasRows] = await db.query(`
+        SELECT DATEDIFF(?, ?) AS dias_transcurridos
+    `, [ultimoPunto.fecha, primerPunto.fecha]);
+
+    let diasTranscurridos = Number(diasRows[0]?.dias_transcurridos || 0);
+
+    if (diasTranscurridos <= 0) {
+        diasTranscurridos = 1;
+    }
+
+    const y0 = Number(primerPunto.cantidad_dia || 0);
+    const yt = Number(ultimoPunto.cantidad_dia || 0);
+
+    if (y0 <= 0 || yt <= 0) {
+        return {
+            rango: {
+                fecha_minima_db: rango.fecha_minima_db,
+                fecha_limite_actual: rango.fecha_limite_actual,
+                dias_periodo_global: 0
+            },
+            producto: {
+                id_producto: Number(productoTop.id_producto),
+                nombre_producto: productoTop.nombre_producto,
+                total_vendido: Number(productoTop.total_vendido || 0)
+            },
+            puntos_modelo: {
+                fecha_inicial_modelo: primerPunto.fecha,
+                fecha_final_modelo: ultimoPunto.fecha,
+                y0,
+                yt,
+                t: diasTranscurridos
+            },
+            procedimiento: null,
+            estimaciones: null,
+            observaciones: [
+                'No se puede aplicar el modelo porque uno de los puntos base tiene valor cero.'
+            ]
+        };
+    }
+
+    const [diasGlobalRows] = await db.query(`
+        SELECT DATEDIFF(?, ?) AS dias_periodo_global
+    `, [rango.fecha_limite_actual, rango.fecha_minima_db]);
+
+    const diasPeriodoGlobal = Number(diasGlobalRows[0]?.dias_periodo_global || 0);
+
+    const C = y0;
+    const k = Math.log(yt / y0) / diasTranscurridos;
+
+    const estimacionDia = C * Math.exp(k * 1);
+    const estimacionSemana = C * Math.exp(k * 7);
+    const estimacionMes = C * Math.exp(k * 30);
+
+    const procedimiento = {
+        ecuacion_base: 'dy/dt = ky',
+        separacion_variables: 'dy/y = k dt',
+        integracion: 'ln(y) = kt + C',
+        solucion_general: 'y = Ce^(kt)',
+        valor_C: C,
+        valor_k: Number(k.toFixed(8)),
+        modelo_final: `y(t) = ${C.toFixed(4)}e^(${k.toFixed(8)}t)`
+    };
+
+    return {
+        rango: {
+            fecha_minima_db: rango.fecha_minima_db,
+            fecha_limite_actual: rango.fecha_limite_actual,
+            dias_periodo_global: diasPeriodoGlobal
+        },
+        producto: {
+            id_producto: Number(productoTop.id_producto),
+            nombre_producto: productoTop.nombre_producto,
+            total_vendido: Number(productoTop.total_vendido || 0)
+        },
+        puntos_modelo: {
+            fecha_inicial_modelo: primerPunto.fecha,
+            fecha_final_modelo: ultimoPunto.fecha,
+            y0,
+            yt,
+            t: diasTranscurridos
+        },
+        procedimiento,
+        estimaciones: {
+            un_dia: Number(estimacionDia.toFixed(2)),
+            una_semana: Number(estimacionSemana.toFixed(2)),
+            un_mes: Number(estimacionMes.toFixed(2))
+        },
+        observaciones: [
+            'La estimación se basa en el comportamiento histórico del producto más vendido.',
+            'Se toma como referencia el primer y último día con ventas registradas del producto líder.',
+            'La fecha límite del periodo mostrado corresponde a la fecha actual del sistema.'
+        ]
+    };
+};
