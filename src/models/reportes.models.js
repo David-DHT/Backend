@@ -270,17 +270,12 @@ export const obtenerEstimacionProductoTop = async () => {
         cantidad_dia: round5(item.cantidad_dia || 0)
     }));
 
-    const historialVentas = seriesRows.map((item) => ({
-        fecha: item.fecha,
-        cantidad_dia: round5(item.cantidad_dia || 0)
-    }));
-
     const primerPunto = historialVentas[0];
     const ultimoPunto = historialVentas[historialVentas.length - 1];
 
     const [diasRows] = await db.query(`
-    SELECT DATEDIFF(?, ?) AS dias_transcurridos
-`, [ultimoPunto.fecha, primerPunto.fecha]);
+        SELECT DATEDIFF(?, ?) AS dias_transcurridos
+    `, [ultimoPunto.fecha, primerPunto.fecha]);
 
     let diasTranscurridos = Number(diasRows[0]?.dias_transcurridos || 0);
 
@@ -295,10 +290,10 @@ export const obtenerEstimacionProductoTop = async () => {
     if (y0 <= 0 || yt <= 0) {
         return {
             rango: {
-                fecha_minima_rango: rango.fecha_minima_rango,
-                fecha_limite_actual: rango.fecha_limite_actual,
-                periodo: periodo,
-                dias_periodo: diasPeriodo
+                fecha_minima_rango: rango.fecha_minima_rango || null,
+                fecha_limite_actual: rango.fecha_limite_actual || null,
+                periodo: 'historico',
+                dias_periodo: diasTranscurridos
             },
             producto: {
                 id_producto: Number(productoTop.id_producto),
@@ -330,17 +325,9 @@ export const obtenerEstimacionProductoTop = async () => {
     const tSemana = round5(t + 7);
     const tMes = round5(t + 30);
 
-    const exponenteDia = round5(k * tDia);
-    const exponenteSemana = round5(k * tSemana);
-    const exponenteMes = round5(k * tMes);
-
-    const eDia = round5(Math.exp(exponenteDia));
-    const eSemana = round5(Math.exp(exponenteSemana));
-    const eMes = round5(Math.exp(exponenteMes));
-
-    const estimacionDia = round5(C * eDia);
-    const estimacionSemana = round5(C * eSemana);
-    const estimacionMes = round5(C * eMes);
+    const estimacionDia = round5(C * Math.exp(k * tDia));
+    const estimacionSemana = round5(C * Math.exp(k * tSemana));
+    const estimacionMes = round5(C * Math.exp(k * tMes));
 
     return {
         rango: {
@@ -356,7 +343,7 @@ export const obtenerEstimacionProductoTop = async () => {
         },
         puntos_modelo: {
             fecha_inicial_modelo: primerPunto.fecha,
-            fecha_final_modelo: productoTop.fecha,
+            fecha_final_modelo: ultimoPunto.fecha,
             y0,
             yt,
             t
