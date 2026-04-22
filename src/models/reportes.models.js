@@ -270,12 +270,17 @@ export const obtenerEstimacionProductoTop = async () => {
         cantidad_dia: round5(item.cantidad_dia || 0)
     }));
 
+    const historialVentas = seriesRows.map((item) => ({
+        fecha: item.fecha,
+        cantidad_dia: round5(item.cantidad_dia || 0)
+    }));
+
     const primerPunto = historialVentas[0];
     const ultimoPunto = historialVentas[historialVentas.length - 1];
 
     const [diasRows] = await db.query(`
-        SELECT DATEDIFF(?, ?) AS dias_transcurridos
-    `, [ultimoPunto.fecha, primerPunto.fecha]);
+    SELECT DATEDIFF(?, ?) AS dias_transcurridos
+`, [ultimoPunto.fecha, primerPunto.fecha]);
 
     let diasTranscurridos = Number(diasRows[0]?.dias_transcurridos || 0);
 
@@ -284,16 +289,16 @@ export const obtenerEstimacionProductoTop = async () => {
     }
 
     const y0 = round5(primerPunto.cantidad_dia || 0);
-    const yt = round5(ultimoPunto.cantidad_dia || 0);
+    const yt = round5(productoTop.total_vendido || 0);
     const t = round5(diasTranscurridos);
 
     if (y0 <= 0 || yt <= 0) {
         return {
             rango: {
-                fecha_minima_rango: rango.fecha_minima_rango || null,
-                fecha_limite_actual: rango.fecha_limite_actual || null,
-                periodo: 'historico',
-                dias_periodo: diasTranscurridos
+                fecha_minima_rango: rango.fecha_minima_rango,
+                fecha_limite_actual: rango.fecha_limite_actual,
+                periodo: periodo,
+                dias_periodo: diasPeriodo
             },
             producto: {
                 id_producto: Number(productoTop.id_producto),
@@ -351,7 +356,7 @@ export const obtenerEstimacionProductoTop = async () => {
         },
         puntos_modelo: {
             fecha_inicial_modelo: primerPunto.fecha,
-            fecha_final_modelo: ultimoPunto.fecha,
+            fecha_final_modelo: productoTop.fecha,
             y0,
             yt,
             t
