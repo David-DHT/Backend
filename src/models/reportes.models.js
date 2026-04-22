@@ -179,22 +179,15 @@ export const eliminarOpinion = async (idOpinion) => {
     return result.affectedRows;
 };
 
-export const obtenerEstimacionProductoTop = async (periodo = 'dia') => {
+export const obtenerEstimacionProductoTop = async () => {
     const round5 = (valor) => Number(Number(valor || 0).toFixed(5));
-
-    const mapaPeriodos = {
-        dia: 1,
-        semana: 7,
-        mes: 30
-    };
-
-    const diasPeriodo = mapaPeriodos[periodo] || 1;
+    const diasPeriodo = 30;
 
     const [rangoRows] = await db.query(`
         SELECT
-            DATE_SUB(CURDATE(), INTERVAL ? DAY) AS fecha_minima_rango,
+            DATE_SUB(CURDATE(), INTERVAL 30 DAY) AS fecha_minima_rango,
             CURDATE() AS fecha_limite_actual
-    `, [diasPeriodo]);
+    `);
 
     const rango = rangoRows[0] || {};
 
@@ -209,11 +202,11 @@ export const obtenerEstimacionProductoTop = async (periodo = 'dia') => {
         INNER JOIN productos p
             ON p.id_producto = dv.ID_Producto
         WHERE v.Estatus = 'activa'
-          AND DATE(v.Fecha) BETWEEN DATE_SUB(CURDATE(), INTERVAL ? DAY) AND CURDATE()
+          AND DATE(v.Fecha) BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE()
         GROUP BY p.id_producto, p.nombre
         ORDER BY total_vendido DESC, nombre_producto ASC
         LIMIT 1
-    `, [diasPeriodo]);
+    `);
 
     const productoTop = topRows[0];
 
@@ -222,7 +215,6 @@ export const obtenerEstimacionProductoTop = async (periodo = 'dia') => {
             rango: {
                 fecha_minima_rango: rango.fecha_minima_rango,
                 fecha_limite_actual: rango.fecha_limite_actual,
-                periodo: periodo,
                 dias_periodo: diasPeriodo
             },
             producto: null,
@@ -245,17 +237,16 @@ export const obtenerEstimacionProductoTop = async (periodo = 'dia') => {
             ON v.ID_Venta = dv.ID_Venta
         WHERE v.Estatus = 'activa'
           AND dv.ID_Producto = ?
-          AND DATE(v.Fecha) BETWEEN DATE_SUB(CURDATE(), INTERVAL ? DAY) AND CURDATE()
+          AND DATE(v.Fecha) BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE()
         GROUP BY DATE(v.Fecha)
         ORDER BY DATE(v.Fecha) ASC
-    `, [productoTop.id_producto, diasPeriodo]);
+    `, [productoTop.id_producto]);
 
     if (!seriesRows.length) {
         return {
             rango: {
                 fecha_minima_rango: rango.fecha_minima_rango,
                 fecha_limite_actual: rango.fecha_limite_actual,
-                periodo: periodo,
                 dias_periodo: diasPeriodo
             },
             producto: {
@@ -300,7 +291,6 @@ export const obtenerEstimacionProductoTop = async (periodo = 'dia') => {
             rango: {
                 fecha_minima_rango: rango.fecha_minima_rango,
                 fecha_limite_actual: rango.fecha_limite_actual,
-                periodo: periodo,
                 dias_periodo: diasPeriodo
             },
             producto: {
@@ -345,7 +335,6 @@ export const obtenerEstimacionProductoTop = async (periodo = 'dia') => {
         rango: {
             fecha_minima_rango: rango.fecha_minima_rango,
             fecha_limite_actual: rango.fecha_limite_actual,
-            periodo: periodo,
             dias_periodo: diasPeriodo
         },
         producto: {

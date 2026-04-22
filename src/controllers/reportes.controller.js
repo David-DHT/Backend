@@ -154,8 +154,7 @@ export const eliminarOpinion = async (req, res) => {
 
 export const obtenerEstimaciones = async (req, res) => {
     try {
-        const periodo = String(req.query?.periodo || 'dia').trim().toLowerCase();
-        const estimacion = await reportesModelo.obtenerEstimacionProductoTop(periodo);
+        const estimacion = await reportesModelo.obtenerEstimacionProductoTop();
 
         return res.status(200).json({
             success: true,
