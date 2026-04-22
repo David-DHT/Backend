@@ -182,43 +182,6 @@ export const eliminarOpinion = async (idOpinion) => {
 export const obtenerEstimacionProductoTop = async () => {
     const round5 = (valor) => Number(Number(valor || 0).toFixed(5));
 
-    const [rangoRows] = await db.query(`
-        SELECT
-            MIN(v.Fecha) AS fecha_minima_db,
-            CURDATE() AS fecha_limite_actual,
-            COUNT(*) AS total_ventas_activas
-        FROM venta v
-        WHERE v.Estatus = 'activa'
-    `);
-
-    const rangoGlobal = rangoRows[0] || {};
-
-    if (!rangoGlobal.fecha_minima_db || Number(rangoGlobal.total_ventas_activas || 0) === 0) {
-        return {
-            rango: {
-                fecha_minima_db: null,
-                fecha_minima_rango: null,
-                fecha_limite_actual: null,
-                dias_periodo: 0
-            },
-            producto: null,
-            puntos_modelo: null,
-            historial_ventas: [],
-            procedimiento: null,
-            estimaciones: null,
-            historial_ventas: [],
-            observaciones: [
-                'No existen ventas activas suficientes dentro del rango seleccionado.'
-            ]
-        };
-    }
-
-    const [diasPeriodoRows] = await db.query(`
-        SELECT DATEDIFF(CURDATE(), ?) AS dias_periodo
-    `, [rango.fecha_minima_rango]);
-
-    const diasPeriodo = Number(diasPeriodoRows[0]?.dias_periodo || 0);
-
     const [topRows] = await db.query(`
         SELECT
             p.id_producto,
@@ -230,30 +193,28 @@ export const obtenerEstimacionProductoTop = async () => {
         INNER JOIN productos p
             ON p.id_producto = dv.ID_Producto
         WHERE v.Estatus = 'activa'
-          AND DATE(v.Fecha) BETWEEN ? AND CURDATE()
         GROUP BY p.id_producto, p.nombre
         ORDER BY total_vendido DESC, nombre_producto ASC
         LIMIT 1
-    `, [rango.fecha_minima_rango]);
+    `);
 
     const productoTop = topRows[0];
 
     if (!productoTop) {
         return {
             rango: {
-                fecha_minima_db: rangoGlobal.fecha_minima_db,
+                fecha_minima_db: null,
                 fecha_minima_rango: null,
-                fecha_limite_actual: rangoGlobal.fecha_limite_actual,
+                fecha_limite_actual: null,
                 dias_periodo_global: 0
             },
             producto: null,
             puntos_modelo: null,
-            historial_ventas: [],
             procedimiento: null,
             estimaciones: null,
             historial_ventas: [],
             observaciones: [
-                'No existen ventas activas suficientes dentro del rango seleccionado.'
+                'No se encontró un producto con ventas activas para estimar.'
             ]
         };
     }
@@ -267,17 +228,16 @@ export const obtenerEstimacionProductoTop = async () => {
             ON v.ID_Venta = dv.ID_Venta
         WHERE v.Estatus = 'activa'
           AND dv.ID_Producto = ?
-          AND DATE(v.Fecha) BETWEEN ? AND CURDATE()
         GROUP BY DATE(v.Fecha)
         ORDER BY DATE(v.Fecha) ASC
-    `, [productoTop.id_producto, rango.fecha_minima_rango]);
+    `, [productoTop.id_producto]);
 
     if (!historialRows.length) {
         return {
             rango: {
-                fecha_minima_db: rangoGlobal.fecha_minima_db,
+                fecha_minima_db: null,
                 fecha_minima_rango: null,
-                fecha_limite_actual: rangoGlobal.fecha_limite_actual,
+                fecha_limite_actual: null,
                 dias_periodo_global: 0
             },
             producto: {
@@ -286,19 +246,23 @@ export const obtenerEstimacionProductoTop = async () => {
                 total_vendido: Number(productoTop.total_vendido || 0)
             },
             puntos_modelo: null,
-            historial_ventas: [],
             procedimiento: null,
             estimaciones: null,
             historial_ventas: [],
             observaciones: [
-                'No se encontró historial de ventas en el rango seleccionado para el producto líder.'
+                'No se encontró historial suficiente del producto líder.'
             ]
         };
     }
 
     const primerRegistro = historialRows[0];
     const fechaInicialModelo = primerRegistro.fecha;
-    const fechaActualSistema = rangoGlobal.fecha_limite_actual;
+
+    const [fechaActualRows] = await db.query(`
+        SELECT CURDATE() AS fecha_actual
+    `);
+
+    const fechaActualSistema = fechaActualRows[0]?.fecha_actual || null;
 
     const [diasRows] = await db.query(`
         SELECT DATEDIFF(?, ?) AS dias_transcurridos
@@ -306,16 +270,9 @@ export const obtenerEstimacionProductoTop = async () => {
 
     const diasTranscurridos = Number(diasRows[0]?.dias_transcurridos || 0);
 
-    const [diasGlobalRows] = await db.query(`
-        SELECT DATEDIFF(?, ?) AS dias_periodo_global
-    `, [rangoGlobal.fecha_limite_actual, rangoGlobal.fecha_minima_db]);
-
-    const diasPeriodoGlobal = Number(diasGlobalRows[0]?.dias_periodo_global || 0);
-
     const x1 = round5(primerRegistro.cantidad_dia || 0);
     const x2 = round5(productoTop.total_vendido || 0);
-    const t0 = 0;
-    const t2 = round5(diasTranscurridos);
+    const t = round5(diasTranscurridos);
 
     const historialVentas = historialRows.map((item) => ({
         fecha: item.fecha,
@@ -325,10 +282,10 @@ export const obtenerEstimacionProductoTop = async () => {
     if (x1 <= 0 || x2 <= 0) {
         return {
             rango: {
-                fecha_minima_db: rangoGlobal.fecha_minima_db,
+                fecha_minima_db: fechaInicialModelo,
                 fecha_minima_rango: fechaInicialModelo,
                 fecha_limite_actual: fechaActualSistema,
-                dias_periodo_global: diasPeriodoGlobal
+                dias_periodo_global: t
             },
             producto: {
                 id_producto: Number(productoTop.id_producto),
@@ -340,26 +297,24 @@ export const obtenerEstimacionProductoTop = async () => {
                 fecha_final_modelo: fechaActualSistema,
                 x1,
                 x2,
-                t0,
-                t2
+                t
             },
-            historial_ventas: historialVentas,
             procedimiento: null,
             estimaciones: null,
             historial_ventas: historialVentas,
             observaciones: [
-                'No se puede aplicar el modelo porque uno de los valores base es igual a cero.'
+                'No se puede aplicar el modelo porque uno de los valores base es cero.'
             ]
         };
     }
 
-    if (t2 <= 0) {
+    if (t <= 0) {
         return {
             rango: {
-                fecha_minima_db: rangoGlobal.fecha_minima_db,
+                fecha_minima_db: fechaInicialModelo,
                 fecha_minima_rango: fechaInicialModelo,
                 fecha_limite_actual: fechaActualSistema,
-                dias_periodo_global: diasPeriodoGlobal
+                dias_periodo_global: 0
             },
             producto: {
                 id_producto: Number(productoTop.id_producto),
@@ -371,14 +326,13 @@ export const obtenerEstimacionProductoTop = async () => {
                 fecha_final_modelo: fechaActualSistema,
                 x1,
                 x2,
-                t0,
-                t2
+                t: 0
             },
             procedimiento: null,
             estimaciones: null,
             historial_ventas: historialVentas,
             observaciones: [
-                'Todavía no transcurre al menos un día entre la primera venta del producto líder y la fecha actual.'
+                'Todavía no transcurre al menos un día entre la primera venta y la fecha actual.'
             ]
         };
     }
@@ -386,32 +340,19 @@ export const obtenerEstimacionProductoTop = async () => {
     const C = round5(x1);
     const division = round5(x2 / x1);
     const lnDivision = round5(Math.log(division));
-    const k = round5(lnDivision / t2);
+    const k = round5(lnDivision / t);
 
-    const calcularEstimacion = (diasEstimacion) => {
-        const tiempoTotal = round5(t2 + diasEstimacion);
-        const exponente = round5(k * tiempoTotal);
-        const valor = round5(C * Math.exp(exponente));
-        const diferencia = round5(valor - x2);
-
-        return {
-            dias_estimacion: diasEstimacion,
-            tiempo_total: tiempoTotal,
-            valor,
-            diferencia
-        };
+    const calcularValor = (diasExtra) => {
+        const tiempoProyectado = round5(t + diasExtra);
+        return round5(C * Math.exp(k * tiempoProyectado));
     };
-
-    const estimacionDia = calcularEstimacion(1);
-    const estimacionSemana = calcularEstimacion(7);
-    const estimacionMes = calcularEstimacion(30);
 
     return {
         rango: {
-            fecha_minima_db: rangoGlobal.fecha_minima_db,
+            fecha_minima_db: fechaInicialModelo,
             fecha_minima_rango: fechaInicialModelo,
             fecha_limite_actual: fechaActualSistema,
-            dias_periodo_global: diasPeriodoGlobal
+            dias_periodo_global: t
         },
         producto: {
             id_producto: Number(productoTop.id_producto),
@@ -423,28 +364,25 @@ export const obtenerEstimacionProductoTop = async () => {
             fecha_final_modelo: fechaActualSistema,
             x1,
             x2,
-            t0,
-            t2
+            t
         },
-        historial_ventas: historialVentas,
         procedimiento: {
             valor_C: C,
             valor_k: k,
-            valor_t: t2,
+            valor_t: t,
             division_x2_entre_x1: division,
             ln_division: lnDivision
         },
         estimaciones: {
-            un_dia: estimacionDia,
-            una_semana: estimacionSemana,
-            un_mes: estimacionMes
+            un_dia: calcularValor(1),
+            una_semana: calcularValor(7),
+            un_mes: calcularValor(30)
         },
         historial_ventas: historialVentas,
         observaciones: [
-            'Se usa x1 como la cantidad vendida el primer día del producto líder.',
-            'Se usa x2 como el total acumulado vendido hasta la fecha actual.',
-            'El valor de k se calcula con ln(x2 / x1) / t2.',
-            'La fila 3 suma al tiempo conocido 1, 7 o 30 días según la opción seleccionada.'
+            'x1 corresponde a la cantidad vendida el primer día.',
+            'x2 corresponde al total acumulado vendido hasta la fecha actual.',
+            'k se calcula con ln(x2 / x1) / t.'
         ]
     };
 };
