@@ -180,6 +180,8 @@ export const eliminarOpinion = async (idOpinion) => {
 };
 
 export const obtenerEstimacionProductoTop = async () => {
+    const round5 = (valor) => Number(Number(valor || 0).toFixed(5));
+
     const [rangoRows] = await db.query(`
         SELECT
             MIN(Fecha) AS fecha_minima_db,
@@ -290,8 +292,9 @@ export const obtenerEstimacionProductoTop = async () => {
         diasTranscurridos = 1;
     }
 
-    const y0 = Number(primerPunto.cantidad_dia || 0);
-    const yt = Number(ultimoPunto.cantidad_dia || 0);
+    const y0 = round5(primerPunto.cantidad_dia || 0);
+    const yt = round5(ultimoPunto.cantidad_dia || 0);
+    const t = round5(diasTranscurridos);
 
     if (y0 <= 0 || yt <= 0) {
         return {
@@ -310,7 +313,7 @@ export const obtenerEstimacionProductoTop = async () => {
                 fecha_final_modelo: ultimoPunto.fecha,
                 y0,
                 yt,
-                t: diasTranscurridos
+                t
             },
             procedimiento: null,
             estimaciones: null,
@@ -326,22 +329,22 @@ export const obtenerEstimacionProductoTop = async () => {
 
     const diasPeriodoGlobal = Number(diasGlobalRows[0]?.dias_periodo_global || 0);
 
-    const C = y0;
-    const k = Math.log(yt / y0) / diasTranscurridos;
+    const C = round5(y0);
+    const division = round5(yt / y0);
+    const lnDivision = round5(Math.log(division));
+    const k = round5(lnDivision / t);
 
-    const estimacionDia = C * Math.exp(k * 1);
-    const estimacionSemana = C * Math.exp(k * 7);
-    const estimacionMes = C * Math.exp(k * 30);
+    const exponenteDia = round5(k * 1);
+    const exponenteSemana = round5(k * 7);
+    const exponenteMes = round5(k * 30);
 
-    const procedimiento = {
-        ecuacion_base: 'dy/dt = ky',
-        separacion_variables: 'dy/y = k dt',
-        integracion: 'ln(y) = kt + C',
-        solucion_general: 'y = Ce^(kt)',
-        valor_C: C,
-        valor_k: Number(k.toFixed(8)),
-        modelo_final: `y(t) = ${C.toFixed(4)}e^(${k.toFixed(8)}t)`
-    };
+    const eDia = round5(Math.exp(exponenteDia));
+    const eSemana = round5(Math.exp(exponenteSemana));
+    const eMes = round5(Math.exp(exponenteMes));
+
+    const estimacionDia = round5(C * eDia);
+    const estimacionSemana = round5(C * eSemana);
+    const estimacionMes = round5(C * eMes);
 
     return {
         rango: {
@@ -359,17 +362,21 @@ export const obtenerEstimacionProductoTop = async () => {
             fecha_final_modelo: ultimoPunto.fecha,
             y0,
             yt,
-            t: diasTranscurridos
+            t
         },
-        procedimiento,
+        procedimiento: {
+            valor_C: C,
+            valor_k: k,
+            valor_t: t
+        },
         estimaciones: {
-            un_dia: Number(estimacionDia.toFixed(2)),
-            una_semana: Number(estimacionSemana.toFixed(2)),
-            un_mes: Number(estimacionMes.toFixed(2))
+            un_dia: estimacionDia,
+            una_semana: estimacionSemana,
+            un_mes: estimacionMes
         },
         observaciones: [
-            'La estimación se basa en el comportamiento histórico del producto más vendido.',
-            'Se toma como referencia el primer y último día con ventas registradas del producto líder.',
+            'Las operaciones se redondean a 5 decimales.',
+            'Solo se muestran los valores finales de C, k y t.',
             'La fecha límite del periodo mostrado corresponde a la fecha actual del sistema.'
         ]
     };
