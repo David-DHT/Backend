@@ -182,16 +182,6 @@ export const eliminarOpinion = async (idOpinion) => {
 export const obtenerEstimacionProductoTop = async () => {
     const round5 = (valor) => Number(Number(valor || 0).toFixed(5));
 
-    const [rangoRows] = await db.query(`
-        SELECT
-            MIN(DATE(v.Fecha)) AS fecha_minima_rango,
-            CURDATE() AS fecha_limite_actual
-        FROM venta v
-        WHERE v.Estatus = 'activa'
-    `);
-
-    const rango = rangoRows[0] || {};
-
     const [topRows] = await db.query(`
         SELECT
             p.id_producto,
@@ -213,8 +203,8 @@ export const obtenerEstimacionProductoTop = async () => {
     if (!productoTop) {
         return {
             rango: {
-                fecha_minima_rango: rango.fecha_minima_rango || null,
-                fecha_limite_actual: rango.fecha_limite_actual || null,
+                fecha_minima_rango: null,
+                fecha_limite_actual: null,
                 periodo: 'historico',
                 dias_periodo: 0
             },
@@ -245,8 +235,8 @@ export const obtenerEstimacionProductoTop = async () => {
     if (!seriesRows.length) {
         return {
             rango: {
-                fecha_minima_rango: rango.fecha_minima_rango || null,
-                fecha_limite_actual: rango.fecha_limite_actual || null,
+                fecha_minima_rango: null,
+                fecha_limite_actual: null,
                 periodo: 'historico',
                 dias_periodo: 0
             },
@@ -290,8 +280,8 @@ export const obtenerEstimacionProductoTop = async () => {
     if (y0 <= 0 || yt <= 0) {
         return {
             rango: {
-                fecha_minima_rango: rango.fecha_minima_rango || null,
-                fecha_limite_actual: rango.fecha_limite_actual || null,
+                fecha_minima_rango: primerPunto.fecha,
+                fecha_limite_actual: ultimoPunto.fecha,
                 periodo: 'historico',
                 dias_periodo: diasTranscurridos
             },
@@ -331,8 +321,8 @@ export const obtenerEstimacionProductoTop = async () => {
 
     return {
         rango: {
-            fecha_minima_rango: rango.fecha_minima_rango || primerPunto.fecha,
-            fecha_limite_actual: rango.fecha_limite_actual || ultimoPunto.fecha,
+            fecha_minima_rango: primerPunto.fecha,
+            fecha_limite_actual: ultimoPunto.fecha,
             periodo: 'historico',
             dias_periodo: diasTranscurridos
         },
