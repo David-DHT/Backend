@@ -179,8 +179,24 @@ export const eliminarOpinion = async (idOpinion) => {
     return result.affectedRows;
 };
 
-export const obtenerEstimacionProductoTop = async () => {
+export const obtenerEstimacionProductoTop = async (periodo = 'dia') => {
     const round5 = (valor) => Number(Number(valor || 0).toFixed(5));
+
+    const mapaPeriodos = {
+        dia: 1,
+        semana: 7,
+        mes: 30
+    };
+
+    const diasPeriodo = mapaPeriodos[periodo] || 1;
+
+    const [rangoRows] = await db.query(`
+        SELECT
+            DATE_SUB(CURDATE(), INTERVAL ? DAY) AS fecha_minima_rango,
+            CURDATE() AS fecha_limite_actual
+    `, [diasPeriodo]);
+
+    const rango = rangoRows[0] || {};
 
     const [topRows] = await db.query(`
         SELECT
@@ -193,33 +209,34 @@ export const obtenerEstimacionProductoTop = async () => {
         INNER JOIN productos p
             ON p.id_producto = dv.ID_Producto
         WHERE v.Estatus = 'activa'
+          AND DATE(v.Fecha) BETWEEN DATE_SUB(CURDATE(), INTERVAL ? DAY) AND CURDATE()
         GROUP BY p.id_producto, p.nombre
         ORDER BY total_vendido DESC, nombre_producto ASC
         LIMIT 1
-    `);
+    `, [diasPeriodo]);
 
     const productoTop = topRows[0];
 
     if (!productoTop) {
         return {
             rango: {
-                fecha_minima_db: null,
-                fecha_minima_rango: null,
-                fecha_limite_actual: null,
-                dias_periodo_global: 0
+                fecha_minima_rango: rango.fecha_minima_rango,
+                fecha_limite_actual: rango.fecha_limite_actual,
+                periodo: periodo,
+                dias_periodo: diasPeriodo
             },
             producto: null,
             puntos_modelo: null,
+            historial_ventas: [],
             procedimiento: null,
             estimaciones: null,
-            historial_ventas: [],
             observaciones: [
-                'No se encontró un producto con ventas activas para estimar.'
+                'No existen ventas activas suficientes dentro del rango seleccionado.'
             ]
         };
     }
 
-    const [historialRows] = await db.query(`
+    const [seriesRows] = await db.query(`
         SELECT
             DATE(v.Fecha) AS fecha,
             SUM(dv.Cantidad) AS cantidad_dia
@@ -228,17 +245,18 @@ export const obtenerEstimacionProductoTop = async () => {
             ON v.ID_Venta = dv.ID_Venta
         WHERE v.Estatus = 'activa'
           AND dv.ID_Producto = ?
+          AND DATE(v.Fecha) BETWEEN DATE_SUB(CURDATE(), INTERVAL ? DAY) AND CURDATE()
         GROUP BY DATE(v.Fecha)
         ORDER BY DATE(v.Fecha) ASC
-    `, [productoTop.id_producto]);
+    `, [productoTop.id_producto, diasPeriodo]);
 
-    if (!historialRows.length) {
+    if (!seriesRows.length) {
         return {
             rango: {
-                fecha_minima_db: null,
-                fecha_minima_rango: null,
-                fecha_limite_actual: null,
-                dias_periodo_global: 0
+                fecha_minima_rango: rango.fecha_minima_rango,
+                fecha_limite_actual: rango.fecha_limite_actual,
+                periodo: periodo,
+                dias_periodo: diasPeriodo
             },
             producto: {
                 id_producto: Number(productoTop.id_producto),
@@ -246,46 +264,44 @@ export const obtenerEstimacionProductoTop = async () => {
                 total_vendido: Number(productoTop.total_vendido || 0)
             },
             puntos_modelo: null,
+            historial_ventas: [],
             procedimiento: null,
             estimaciones: null,
-            historial_ventas: [],
             observaciones: [
-                'No se encontró historial suficiente del producto líder.'
+                'No se encontró historial de ventas en el rango seleccionado para el producto líder.'
             ]
         };
     }
 
-    const primerRegistro = historialRows[0];
-    const fechaInicialModelo = primerRegistro.fecha;
-
-    const [fechaActualRows] = await db.query(`
-        SELECT CURDATE() AS fecha_actual
-    `);
-
-    const fechaActualSistema = fechaActualRows[0]?.fecha_actual || null;
-
-    const [diasRows] = await db.query(`
-        SELECT DATEDIFF(?, ?) AS dias_transcurridos
-    `, [fechaActualSistema, fechaInicialModelo]);
-
-    const diasTranscurridos = Number(diasRows[0]?.dias_transcurridos || 0);
-
-    const x1 = round5(primerRegistro.cantidad_dia || 0);
-    const x2 = round5(productoTop.total_vendido || 0);
-    const t = round5(diasTranscurridos);
-
-    const historialVentas = historialRows.map((item) => ({
+    const historialVentas = seriesRows.map((item) => ({
         fecha: item.fecha,
         cantidad_dia: round5(item.cantidad_dia || 0)
     }));
 
-    if (x1 <= 0 || x2 <= 0) {
+    const primerPunto = historialVentas[0];
+    const ultimoPunto = historialVentas[historialVentas.length - 1];
+
+    const [diasRows] = await db.query(`
+        SELECT DATEDIFF(?, ?) AS dias_transcurridos
+    `, [ultimoPunto.fecha, primerPunto.fecha]);
+
+    let diasTranscurridos = Number(diasRows[0]?.dias_transcurridos || 0);
+
+    if (diasTranscurridos <= 0) {
+        diasTranscurridos = 1;
+    }
+
+    const y0 = round5(primerPunto.cantidad_dia || 0);
+    const yt = round5(ultimoPunto.cantidad_dia || 0);
+    const t = round5(diasTranscurridos);
+
+    if (y0 <= 0 || yt <= 0) {
         return {
             rango: {
-                fecha_minima_db: fechaInicialModelo,
-                fecha_minima_rango: fechaInicialModelo,
-                fecha_limite_actual: fechaActualSistema,
-                dias_periodo_global: t
+                fecha_minima_rango: rango.fecha_minima_rango,
+                fecha_limite_actual: rango.fecha_limite_actual,
+                periodo: periodo,
+                dias_periodo: diasPeriodo
             },
             producto: {
                 id_producto: Number(productoTop.id_producto),
@@ -293,66 +309,48 @@ export const obtenerEstimacionProductoTop = async () => {
                 total_vendido: Number(productoTop.total_vendido || 0)
             },
             puntos_modelo: {
-                fecha_inicial_modelo: fechaInicialModelo,
-                fecha_final_modelo: fechaActualSistema,
-                x1,
-                x2,
+                fecha_inicial_modelo: primerPunto.fecha,
+                fecha_final_modelo: ultimoPunto.fecha,
+                y0,
+                yt,
                 t
             },
+            historial_ventas: historialVentas,
             procedimiento: null,
             estimaciones: null,
-            historial_ventas: historialVentas,
             observaciones: [
-                'No se puede aplicar el modelo porque uno de los valores base es cero.'
+                'No se puede aplicar el modelo porque uno de los puntos base del rango tiene valor cero.'
             ]
         };
     }
 
-    if (t <= 0) {
-        return {
-            rango: {
-                fecha_minima_db: fechaInicialModelo,
-                fecha_minima_rango: fechaInicialModelo,
-                fecha_limite_actual: fechaActualSistema,
-                dias_periodo_global: 0
-            },
-            producto: {
-                id_producto: Number(productoTop.id_producto),
-                nombre_producto: productoTop.nombre_producto,
-                total_vendido: Number(productoTop.total_vendido || 0)
-            },
-            puntos_modelo: {
-                fecha_inicial_modelo: fechaInicialModelo,
-                fecha_final_modelo: fechaActualSistema,
-                x1,
-                x2,
-                t: 0
-            },
-            procedimiento: null,
-            estimaciones: null,
-            historial_ventas: historialVentas,
-            observaciones: [
-                'Todavía no transcurre al menos un día entre la primera venta y la fecha actual.'
-            ]
-        };
-    }
-
-    const C = round5(x1);
-    const division = round5(x2 / x1);
+    const C = round5(y0);
+    const division = round5(yt / y0);
     const lnDivision = round5(Math.log(division));
     const k = round5(lnDivision / t);
 
-    const calcularValor = (diasExtra) => {
-        const tiempoProyectado = round5(t + diasExtra);
-        return round5(C * Math.exp(k * tiempoProyectado));
-    };
+    const tDia = round5(t + 1);
+    const tSemana = round5(t + 7);
+    const tMes = round5(t + 30);
+
+    const exponenteDia = round5(k * tDia);
+    const exponenteSemana = round5(k * tSemana);
+    const exponenteMes = round5(k * tMes);
+
+    const eDia = round5(Math.exp(exponenteDia));
+    const eSemana = round5(Math.exp(exponenteSemana));
+    const eMes = round5(Math.exp(exponenteMes));
+
+    const estimacionDia = round5(C * eDia);
+    const estimacionSemana = round5(C * eSemana);
+    const estimacionMes = round5(C * eMes);
 
     return {
         rango: {
-            fecha_minima_db: fechaInicialModelo,
-            fecha_minima_rango: fechaInicialModelo,
-            fecha_limite_actual: fechaActualSistema,
-            dias_periodo_global: t
+            fecha_minima_rango: rango.fecha_minima_rango,
+            fecha_limite_actual: rango.fecha_limite_actual,
+            periodo: periodo,
+            dias_periodo: diasPeriodo
         },
         producto: {
             id_producto: Number(productoTop.id_producto),
@@ -360,29 +358,23 @@ export const obtenerEstimacionProductoTop = async () => {
             total_vendido: Number(productoTop.total_vendido || 0)
         },
         puntos_modelo: {
-            fecha_inicial_modelo: fechaInicialModelo,
-            fecha_final_modelo: fechaActualSistema,
-            x1,
-            x2,
+            fecha_inicial_modelo: primerPunto.fecha,
+            fecha_final_modelo: ultimoPunto.fecha,
+            y0,
+            yt,
             t
         },
+        historial_ventas: historialVentas,
         procedimiento: {
             valor_C: C,
             valor_k: k,
-            valor_t: t,
-            division_x2_entre_x1: division,
-            ln_division: lnDivision
+            valor_t: t
         },
         estimaciones: {
-            un_dia: calcularValor(1),
-            una_semana: calcularValor(7),
-            un_mes: calcularValor(30)
+            un_dia: estimacionDia,
+            una_semana: estimacionSemana,
+            un_mes: estimacionMes
         },
-        historial_ventas: historialVentas,
-        observaciones: [
-            'x1 corresponde a la cantidad vendida el primer día.',
-            'x2 corresponde al total acumulado vendido hasta la fecha actual.',
-            'k se calcula con ln(x2 / x1) / t.'
-        ]
+        observaciones: []
     };
 };
