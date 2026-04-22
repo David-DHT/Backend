@@ -179,22 +179,16 @@ export const eliminarOpinion = async (idOpinion) => {
     return result.affectedRows;
 };
 
-export const obtenerEstimacionProductoTop = async (periodo = 'dia') => {
+export const obtenerEstimacionProductoTop = async () => {
     const round5 = (valor) => Number(Number(valor || 0).toFixed(5));
-
-    const mapaPeriodos = {
-        dia: 1,
-        semana: 7,
-        mes: 30
-    };
-
-    const diasPeriodo = mapaPeriodos[periodo] || 1;
 
     const [rangoRows] = await db.query(`
         SELECT
-            DATE_SUB(CURDATE(), INTERVAL ? DAY) AS fecha_minima_rango,
+            MIN(DATE(v.Fecha)) AS fecha_minima_rango,
             CURDATE() AS fecha_limite_actual
-    `, [diasPeriodo]);
+        FROM venta v
+        WHERE v.Estatus = 'activa'
+    `);
 
     const rango = rangoRows[0] || {};
 
@@ -209,21 +203,20 @@ export const obtenerEstimacionProductoTop = async (periodo = 'dia') => {
         INNER JOIN productos p
             ON p.id_producto = dv.ID_Producto
         WHERE v.Estatus = 'activa'
-          AND DATE(v.Fecha) BETWEEN DATE_SUB(CURDATE(), INTERVAL ? DAY) AND CURDATE()
         GROUP BY p.id_producto, p.nombre
         ORDER BY total_vendido DESC, nombre_producto ASC
         LIMIT 1
-    `, [diasPeriodo]);
+    `);
 
     const productoTop = topRows[0];
 
     if (!productoTop) {
         return {
             rango: {
-                fecha_minima_rango: rango.fecha_minima_rango,
-                fecha_limite_actual: rango.fecha_limite_actual,
-                periodo: periodo,
-                dias_periodo: diasPeriodo
+                fecha_minima_rango: rango.fecha_minima_rango || null,
+                fecha_limite_actual: rango.fecha_limite_actual || null,
+                periodo: 'historico',
+                dias_periodo: 0
             },
             producto: null,
             puntos_modelo: null,
@@ -231,7 +224,7 @@ export const obtenerEstimacionProductoTop = async (periodo = 'dia') => {
             procedimiento: null,
             estimaciones: null,
             observaciones: [
-                'No existen ventas activas suficientes dentro del rango seleccionado.'
+                'No existen ventas activas suficientes para calcular la estimación.'
             ]
         };
     }
@@ -245,18 +238,17 @@ export const obtenerEstimacionProductoTop = async (periodo = 'dia') => {
             ON v.ID_Venta = dv.ID_Venta
         WHERE v.Estatus = 'activa'
           AND dv.ID_Producto = ?
-          AND DATE(v.Fecha) BETWEEN DATE_SUB(CURDATE(), INTERVAL ? DAY) AND CURDATE()
         GROUP BY DATE(v.Fecha)
         ORDER BY DATE(v.Fecha) ASC
-    `, [productoTop.id_producto, diasPeriodo]);
+    `, [productoTop.id_producto]);
 
     if (!seriesRows.length) {
         return {
             rango: {
-                fecha_minima_rango: rango.fecha_minima_rango,
-                fecha_limite_actual: rango.fecha_limite_actual,
-                periodo: periodo,
-                dias_periodo: diasPeriodo
+                fecha_minima_rango: rango.fecha_minima_rango || null,
+                fecha_limite_actual: rango.fecha_limite_actual || null,
+                periodo: 'historico',
+                dias_periodo: 0
             },
             producto: {
                 id_producto: Number(productoTop.id_producto),
@@ -268,7 +260,7 @@ export const obtenerEstimacionProductoTop = async (periodo = 'dia') => {
             procedimiento: null,
             estimaciones: null,
             observaciones: [
-                'No se encontró historial de ventas en el rango seleccionado para el producto líder.'
+                'No se encontró historial de ventas para el producto líder.'
             ]
         };
     }
@@ -298,10 +290,10 @@ export const obtenerEstimacionProductoTop = async (periodo = 'dia') => {
     if (y0 <= 0 || yt <= 0) {
         return {
             rango: {
-                fecha_minima_rango: rango.fecha_minima_rango,
-                fecha_limite_actual: rango.fecha_limite_actual,
-                periodo: periodo,
-                dias_periodo: diasPeriodo
+                fecha_minima_rango: rango.fecha_minima_rango || null,
+                fecha_limite_actual: rango.fecha_limite_actual || null,
+                periodo: 'historico',
+                dias_periodo: diasTranscurridos
             },
             producto: {
                 id_producto: Number(productoTop.id_producto),
@@ -347,10 +339,10 @@ export const obtenerEstimacionProductoTop = async (periodo = 'dia') => {
 
     return {
         rango: {
-            fecha_minima_rango: rango.fecha_minima_rango,
-            fecha_limite_actual: rango.fecha_limite_actual,
-            periodo: periodo,
-            dias_periodo: diasPeriodo
+            fecha_minima_rango: rango.fecha_minima_rango || primerPunto.fecha,
+            fecha_limite_actual: rango.fecha_limite_actual || ultimoPunto.fecha,
+            periodo: 'historico',
+            dias_periodo: diasTranscurridos
         },
         producto: {
             id_producto: Number(productoTop.id_producto),
