@@ -181,15 +181,40 @@ export const eliminarOpinion = async (idOpinion) => {
 
 export const obtenerEstimacionProductoTop = async () => {
     const round5 = (valor) => Number(Number(valor || 0).toFixed(5));
-    const diasPeriodo = 30;
 
     const [rangoRows] = await db.query(`
         SELECT
-            DATE_SUB(CURDATE(), INTERVAL 30 DAY) AS fecha_minima_rango,
+            MIN(DATE(Fecha)) AS fecha_minima_rango,
             CURDATE() AS fecha_limite_actual
+        FROM venta
+        WHERE Estatus = 'activa'
     `);
 
     const rango = rangoRows[0] || {};
+
+    if (!rango.fecha_minima_rango) {
+        return {
+            rango: {
+                fecha_minima_rango: null,
+                fecha_limite_actual: null,
+                dias_periodo: 0
+            },
+            producto: null,
+            puntos_modelo: null,
+            historial_ventas: [],
+            procedimiento: null,
+            estimaciones: null,
+            observaciones: [
+                'No existen ventas activas suficientes dentro del rango seleccionado.'
+            ]
+        };
+    }
+
+    const [diasPeriodoRows] = await db.query(`
+        SELECT DATEDIFF(CURDATE(), ?) AS dias_periodo
+    `, [rango.fecha_minima_rango]);
+
+    const diasPeriodo = Number(diasPeriodoRows[0]?.dias_periodo || 0);
 
     const [topRows] = await db.query(`
         SELECT
@@ -202,11 +227,11 @@ export const obtenerEstimacionProductoTop = async () => {
         INNER JOIN productos p
             ON p.id_producto = dv.ID_Producto
         WHERE v.Estatus = 'activa'
-          AND DATE(v.Fecha) BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE()
+          AND DATE(v.Fecha) BETWEEN ? AND CURDATE()
         GROUP BY p.id_producto, p.nombre
         ORDER BY total_vendido DESC, nombre_producto ASC
         LIMIT 1
-    `);
+    `, [rango.fecha_minima_rango]);
 
     const productoTop = topRows[0];
 
@@ -237,10 +262,10 @@ export const obtenerEstimacionProductoTop = async () => {
             ON v.ID_Venta = dv.ID_Venta
         WHERE v.Estatus = 'activa'
           AND dv.ID_Producto = ?
-          AND DATE(v.Fecha) BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE()
+          AND DATE(v.Fecha) BETWEEN ? AND CURDATE()
         GROUP BY DATE(v.Fecha)
         ORDER BY DATE(v.Fecha) ASC
-    `, [productoTop.id_producto]);
+    `, [productoTop.id_producto, rango.fecha_minima_rango]);
 
     if (!seriesRows.length) {
         return {
