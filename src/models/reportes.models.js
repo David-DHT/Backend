@@ -264,8 +264,8 @@ export const obtenerEstimacionProductoTop = async () => {
     const ultimoPunto = historialVentas[historialVentas.length - 1];
 
     const [diasRows] = await db.query(`
-        SELECT DATEDIFF(?, ?) AS dias_transcurridos
-    `, [ultimoPunto.fecha, primerPunto.fecha]);
+        SELECT DATEDIFF(CURDATE(), ?) AS dias_transcurridos
+    `, [primerPunto.fecha]);
 
     let diasTranscurridos = Number(diasRows[0]?.dias_transcurridos || 0);
 
@@ -281,7 +281,7 @@ export const obtenerEstimacionProductoTop = async () => {
         return {
             rango: {
                 fecha_minima_rango: primerPunto.fecha,
-                fecha_limite_actual: ultimoPunto.fecha,
+                fecha_limite_actual: new Date().toISOString().split('T')[0],
                 periodo: 'historico',
                 dias_periodo: diasTranscurridos
             },
@@ -322,7 +322,7 @@ export const obtenerEstimacionProductoTop = async () => {
     return {
         rango: {
             fecha_minima_rango: primerPunto.fecha,
-            fecha_limite_actual: ultimoPunto.fecha,
+            fecha_limite_actual: new Date().toISOString().split('T')[0],
             periodo: 'historico',
             dias_periodo: diasTranscurridos
         },
