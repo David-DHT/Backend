@@ -199,18 +199,25 @@ export const obtenerEstimacionProductoTop = async () => {
                 fecha_minima_db: null,
                 fecha_minima_rango: null,
                 fecha_limite_actual: null,
-                dias_periodo_global: 0
+                dias_periodo: 0
             },
             producto: null,
             puntos_modelo: null,
+            historial_ventas: [],
             procedimiento: null,
             estimaciones: null,
             historial_ventas: [],
             observaciones: [
-                'No existen ventas activas suficientes para calcular estimaciones.'
+                'No existen ventas activas suficientes dentro del rango seleccionado.'
             ]
         };
     }
+
+    const [diasPeriodoRows] = await db.query(`
+        SELECT DATEDIFF(CURDATE(), ?) AS dias_periodo
+    `, [rango.fecha_minima_rango]);
+
+    const diasPeriodo = Number(diasPeriodoRows[0]?.dias_periodo || 0);
 
     const [topRows] = await db.query(`
         SELECT
@@ -223,10 +230,11 @@ export const obtenerEstimacionProductoTop = async () => {
         INNER JOIN productos p
             ON p.id_producto = dv.ID_Producto
         WHERE v.Estatus = 'activa'
+          AND DATE(v.Fecha) BETWEEN ? AND CURDATE()
         GROUP BY p.id_producto, p.nombre
         ORDER BY total_vendido DESC, nombre_producto ASC
         LIMIT 1
-    `);
+    `, [rango.fecha_minima_rango]);
 
     const productoTop = topRows[0];
 
@@ -240,27 +248,29 @@ export const obtenerEstimacionProductoTop = async () => {
             },
             producto: null,
             puntos_modelo: null,
+            historial_ventas: [],
             procedimiento: null,
             estimaciones: null,
             historial_ventas: [],
             observaciones: [
-                'No se encontró un producto con ventas activas para estimar.'
+                'No existen ventas activas suficientes dentro del rango seleccionado.'
             ]
         };
     }
 
     const [historialRows] = await db.query(`
         SELECT
-            v.Fecha AS fecha,
+            DATE(v.Fecha) AS fecha,
             SUM(dv.Cantidad) AS cantidad_dia
         FROM detalle_venta dv
         INNER JOIN venta v
             ON v.ID_Venta = dv.ID_Venta
         WHERE v.Estatus = 'activa'
           AND dv.ID_Producto = ?
-        GROUP BY v.Fecha
-        ORDER BY v.Fecha ASC
-    `, [productoTop.id_producto]);
+          AND DATE(v.Fecha) BETWEEN ? AND CURDATE()
+        GROUP BY DATE(v.Fecha)
+        ORDER BY DATE(v.Fecha) ASC
+    `, [productoTop.id_producto, rango.fecha_minima_rango]);
 
     if (!historialRows.length) {
         return {
@@ -276,11 +286,12 @@ export const obtenerEstimacionProductoTop = async () => {
                 total_vendido: Number(productoTop.total_vendido || 0)
             },
             puntos_modelo: null,
+            historial_ventas: [],
             procedimiento: null,
             estimaciones: null,
             historial_ventas: [],
             observaciones: [
-                'No se encontró una serie histórica válida para el producto más vendido.'
+                'No se encontró historial de ventas en el rango seleccionado para el producto líder.'
             ]
         };
     }
@@ -332,6 +343,7 @@ export const obtenerEstimacionProductoTop = async () => {
                 t0,
                 t2
             },
+            historial_ventas: historialVentas,
             procedimiento: null,
             estimaciones: null,
             historial_ventas: historialVentas,
@@ -414,6 +426,7 @@ export const obtenerEstimacionProductoTop = async () => {
             t0,
             t2
         },
+        historial_ventas: historialVentas,
         procedimiento: {
             valor_C: C,
             valor_k: k,
